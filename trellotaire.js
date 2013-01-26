@@ -1,7 +1,23 @@
 var request = require('request'),
 	url 	= require('url'),
-	und		= require('underscore');
+	und		= require('underscore'),
+	pretty	= require('prettyjson');
 
+//Utility Functions
+
+debug = function(o){
+	var pretty = require('prettyjson')
+	try {
+		console.log(pretty.render(JSON.parse(o)))
+	} catch (e){
+		console.log(o);
+	}
+};
+
+
+////////////////////
+	
+	
 var robotid = "daveshades";
 var key = "7c4a64bfd8a154965bd35714224a344e";
 var token = "de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
@@ -37,5 +53,5 @@ request(url.build('members/'+robotid+'/notifications'), function(error, response
 	if (error)
 		console.log(error);
 		
-	console.log(body);
+	debug(body);
 })
