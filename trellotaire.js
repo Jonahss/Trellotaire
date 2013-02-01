@@ -16,7 +16,7 @@ debug = function(o){
 
 ////////////////////
 	
-	
+//TODO: these can be put into a config file (which is actually just a json file we 'require')	
 var robotid = "daveshades";
 var key = "7c4a64bfd8a154965bd35714224a344e";
 var token = "d20b755635fd5ac839b8221b366f67356c8f9478a87157409496786d283156ec" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
@@ -55,13 +55,14 @@ request(url.build('members/'+robotid+'/notifications'), function(error, response
 	debug(body);
 })
 
-var clear_board = function(){
+var clear_board = function(callback){
 
-	var close = function(id){
+	var close = function(id, callback){
 		request.put(url.build('lists/'+id+'/closed', {value: true}), function(error, response, body){
 			if (error)
 				console.log(error);
-			console.log('close a list: '+body)
+			console.log('close a list: '+body);
+			callback();
 		});
 	};
 
@@ -72,11 +73,39 @@ var clear_board = function(){
 		var lists = JSON.parse(body);
 		debug(body);
 		var list_ids = lists.map(function(x){return x.id});
-		list_ids.forEach(function(id){close(id)});
+		if (list_ids.length == 0)
+			callback();
+		var completed = 0;
+		list_ids.forEach(function(id){ //manual implementation of async.forEach(); for funsies
+			close(id, function(){
+				completed+=1;
+				if (completed >= list_ids.length)
+					callback();
+			});
+		});
 	});
 };
 
-clear_board();
+fill_board = function(i, callback){
+	var completed = 0;
+	for (var x = 0; x < i; x++){
+		request.post(url.build('lists', {name:'List'+x, idBoard:'50fdfccd2f15f2f54a000a51'}), function(){
+			completed+=1;
+			if (completed >= i)
+				setTimeout(callback, 15000);
+		});
+	}
+}
+
+clear_board(function(){
+	fill_board(10, function() {
+		clear_board(function(){
+			console.log("completed erasing all lists");
+		})
+	})
+});
+
+//async
 
 
 
