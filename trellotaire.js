@@ -14,6 +14,13 @@ debug = function(o){
 	}
 };
 
+dots = function(i){
+	var arr = new Array(i);
+	for (var x = 0; x < arr.length; x++)
+		arr[x] = '.';
+	return arr.join('');
+};
+
 ////////////////////
 	
 //TODO: these can be put into a config file (which is actually just a json file we 'require')	
@@ -97,15 +104,25 @@ fill_board = function(i, callback){
 	}
 }
 
+//test clearing
 clear_board(function(){
 	fill_board(10, function() {
 		clear_board(function(){
-			console.log("completed erasing all lists");
-		})
-	})
+			for (var x = 0; x < 7; x++){
+				request.post(url.build('lists', {name: dots(x), idBoard:'50fdfccd2f15f2f54a000a51', pos: x}), function(){
+					
+				});
+			}
+		});
+	});
 });
-
-//async
+/*
+for (var x = 0; x < 7; x++){
+	request.post(url.build('lists', {name: dots(x), idBoard:'50fdfccd2f15f2f54a000a51'}), function(){
+		
+	});
+}
+*/
 
 
 
