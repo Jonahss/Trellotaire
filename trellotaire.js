@@ -1,7 +1,8 @@
 var request = require('request'),
 	url 	= require('url'),
 	und		= require('underscore'),
-	pretty	= require('prettyjson');
+	pretty	= require('prettyjson'),
+	vars	= require('./vars.json');
 
 //Utility Functions
 
@@ -22,11 +23,9 @@ dots = function(i){
 };
 
 ////////////////////
-	
-//TODO: these can be put into a config file (which is actually just a json file we 'require')	
-var robotid = "daveshades";
-var key = "7c4a64bfd8a154965bd35714224a344e";
-var token = "d20b755635fd5ac839b8221b366f67356c8f9478a87157409496786d283156ec" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+		
+var token = "dede66f209b07f6560140d3ba46a460b016b985196c74e1e064f420c3e425b4a" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var board = '50fdfccd2f15f2f54a000a51';
 
 url.base = {
 	protocol: 'https',
@@ -34,7 +33,7 @@ url.base = {
 	host: 'api.trello.com',
 	hostname: 'api.trello.com',
 	base_query: {
-			key: key,
+			key: vars.key,
 			token: token
 		   },
 	base_pathname: '/1/'
@@ -51,11 +50,11 @@ url.build = function(path, query){
 	return this.format(url);
 };
 
-console.log(url.build('members/'+robotid+'/notifications', {goo:'ga'}));
-console.log(url.build('members/'+robotid+'/notifications', {foo:'fa'}));
-console.log(url.build('members/'+robotid+'/notifications'));
+console.log(url.build('members/'+vars.robotid+'/notifications', {goo:'ga'}));
+console.log(url.build('members/'+vars.robotid+'/notifications', {foo:'fa'}));
+console.log(url.build('members/'+vars.robotid+'/notifications'));
 
-request(url.build('members/'+robotid+'/notifications'), function(error, response, body){
+request(url.build('members/'+vars.robotid+'/notifications'), function(error, response, body){
 	if (error)
 		console.log(error);
 		
@@ -73,7 +72,7 @@ var clear_board = function(callback){
 		});
 	};
 
-	request(url.build('boards/50fdfccd2f15f2f54a000a51/lists'), function(error, response, body){
+	request(url.build('boards/'+board+'/lists'), function(error, response, body){
 		if (error)
 			console.log(error);
 		
@@ -96,7 +95,7 @@ var clear_board = function(callback){
 fill_board = function(i, callback){
 	var completed = 0;
 	for (var x = 0; x < i; x++){
-		request.post(url.build('lists', {name:'List'+x, idBoard:'50fdfccd2f15f2f54a000a51'}), function(){
+		request.post(url.build('lists', {name:'List'+x, idBoard: board}), function(){
 			completed+=1;
 			if (completed >= i)
 				setTimeout(callback, 15000);
@@ -104,25 +103,29 @@ fill_board = function(i, callback){
 	}
 }
 
-//test clearing
-clear_board(function(){
-	fill_board(10, function() {
-		clear_board(function(){
-			for (var x = 0; x < 7; x++){
-				request.post(url.build('lists', {name: dots(x), idBoard:'50fdfccd2f15f2f54a000a51', pos: x}), function(){
-					
-				});
-			}
+deal = function() {
+	var add_list = function(name, callback){
+		request.post(url.build('lists', {name: name, idBoard: board, pos:'bottom'}), function(error, response, body){
+			callback();
 		});
-	});
-});
-/*
-for (var x = 0; x < 7; x++){
-	request.post(url.build('lists', {name: dots(x), idBoard:'50fdfccd2f15f2f54a000a51'}), function(){
-		
-	});
+	}
+	var x = 0
+	var execute_next = function(){
+		console.log("executing next, x= " + x);
+		x += 1;
+		if (x < 8)
+			add_list(dots(x), execute_next);
+	}
+	execute_next();
 }
-*/
+
+
+clear_board(function(){
+		deal();
+});
+
+
+
 
 
 
