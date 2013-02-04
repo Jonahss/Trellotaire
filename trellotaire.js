@@ -92,38 +92,36 @@ var clear_board = function(callback){
 	});
 };
 
-fill_board = function(i, callback){
-	var completed = 0;
-	for (var x = 0; x < i; x++){
-		request.post(url.build('lists', {name:'List'+x, idBoard: board}), function(){
-			completed+=1;
-			if (completed >= i)
-				setTimeout(callback, 15000);
-		});
-	}
-}
+var piles = new Array(7);
 
 deal = function() {
-	var add_list = function(name, callback){
-		request.post(url.build('lists', {name: name, idBoard: board, pos:'bottom'}), function(error, response, body){
+	var add_list = function(callback){
+		request.post(url.build('lists', {name: dots(pile_i), idBoard: board, pos:'bottom'}), function(error, response, body){
+			var id = JSON.parse(body).id;
+			var new_card_url = url.build('cards',{name: "hey some name", idList: id})
+			
+			for(var card_i = 0; card_i < pile_i; card_i++){
+				request.post(new_card_url, function(error, response, body){
+					console.log('add card for pile ' + pile_i);
+				});
+			}
 			callback();
 		});
 	}
-	var x = 0
+	
+	var pile_i = 0;
 	var execute_next = function(){
-		console.log("executing next, x= " + x);
-		x += 1;
-		if (x < 8)
-			add_list(dots(x), execute_next);
+		pile_i += 1;
+		console.log("executing next, pile_i= " + pile_i);
+		if (pile_i < 8)
+			add_list(execute_next);
 	}
 	execute_next();
 }
 
-
 clear_board(function(){
 		deal();
 });
-
 
 
 
