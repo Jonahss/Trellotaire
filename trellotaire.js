@@ -2,7 +2,8 @@ var request = require('request'),
 	url 	= require('url'),
 	und		= require('underscore'),
 	pretty	= require('prettyjson'),
-	vars	= require('./vars.json');
+	vars	= require('./vars.json'),
+	cards	= require('./node-cards');
 
 //Utility Functions
 
