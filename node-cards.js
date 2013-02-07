@@ -43,6 +43,7 @@
 var rand = require('./node-rand-utils');
 
 exports.useArc4 = false;
+rand.arc4.seed('TheEventualCodeIsNoMoreThanTheDepositOfYourUnderstanding');
 
 // ------------------------------------------------------------------
 //  @class  Card
@@ -192,16 +193,16 @@ Deck.prototype.draw = function(count, _into) {
 		throw new RangeError('Cannot draw card from deck; No cards remaining.');
 	}
 	
-	if (typeof count === 'number') {
-		var cards = [ ];
-		for (var i = 0; i < count; i++) {
-			cards.push(self.draw());
-		}
-		return cards;
+	if (!count){
+		return this.deck.shiftInto(_into || this.held);
 	}
 	
-	_into = _into || this.held
-	return this.deck.shiftInto(_into);
+	var cards = [ ];
+	for (var i = 0; i < count; i++){	
+		cards.push(self.draw(0, _into));
+	}
+	
+	return cards;
 };
 
 /**
@@ -222,17 +223,23 @@ Deck.prototype.drawToDiscard = function(count) {
  * @param   object    the card object
  * @return  void
  */
-Deck.prototype.discard = function(card) {
-	if (Array.isArray(card) && typeof card[0] !== 'string') {
-		card.forEach(this.discard.bind(this));
+Deck.prototype.draw = function(count, _into) {
+	var self = this;
+
+	if (! this.deck.length) {
+		throw new RangeError('Cannot draw card from deck; No cards remaining.');
 	}
-	
-	card = this.find(card);
-	if (! card) {
-		throw new Error('Given "card" value does not belong to this deck');
+
+	if (!count){
+		return this.deck.shiftInto(_into || this.held);
 	}
-	card.pile.splice(card.index, 1);
-	this.discard.push(card.card);
+
+	var cards = [ ];
+	for (var i = 0; i < count; i++){	
+		cards.push(self.draw(0, _into));
+	}
+
+	return cards;
 };
 
 /**

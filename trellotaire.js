@@ -5,6 +5,10 @@ var request = require('request'),
 	vars	= require('./vars.json'),
 	cards	= require('./node-cards');
 
+cards.useArc4 = true;
+var deck = new cards.Deck('poker');
+deck.shuffleRemaining();
+	
 //Utility Functions
 
 debug = function(o){
@@ -25,7 +29,7 @@ dots = function(i){
 
 ////////////////////
 		
-var token = "dede66f209b07f6560140d3ba46a460b016b985196c74e1e064f420c3e425b4a" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "701b343ddb247a907519270814e4a24717e022b63b26ffd451784404965d91b0" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfccd2f15f2f54a000a51';
 
 url.base = {
@@ -51,16 +55,12 @@ url.build = function(path, query){
 	return this.format(url);
 };
 
-console.log(url.build('members/'+vars.robotid+'/notifications', {goo:'ga'}));
-console.log(url.build('members/'+vars.robotid+'/notifications', {foo:'fa'}));
-console.log(url.build('members/'+vars.robotid+'/notifications'));
-
 request(url.build('members/'+vars.robotid+'/notifications'), function(error, response, body){
 	if (error)
 		console.log(error);
 		
 	debug(body);
-})
+});
 
 var clear_board = function(callback){
 
@@ -99,11 +99,12 @@ deal = function() {
 	var add_list = function(callback){
 		request.post(url.build('lists', {name: dots(pile_i), idBoard: board, pos:'bottom'}), function(error, response, body){
 			var id = JSON.parse(body).id;
-			var new_card_url = url.build('cards',{name: "hey some name", idList: id})
+			piles[pile_i] = id;
 			
 			for(var card_i = 0; card_i < pile_i; card_i++){
-				request.post(new_card_url, function(error, response, body){
-					console.log('add card for pile ' + pile_i);
+				var new_card = deck.draw();
+				request.post(url.build('cards',{name: new_card.toString(), idList: id}), function(error, response, body){
+					console.log('add ' + new_card.toString() + 'to pile ' + pile_i);
 				});
 			}
 			callback();
