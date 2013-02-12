@@ -38,7 +38,7 @@ dots = function(i){
 
 ////////////////////
 		
-var token = "7d5e1479d5443688aa9c21be3b63f2fe1b17b56bb275f4a702c48cccb8a30172" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "bd17748b8ad0a44d023a8c60117c4d536f451ca78c64b716fdb8b975ed63dc8b" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfccd2f15f2f54a000a51';
 
 url.base = {
@@ -163,13 +163,43 @@ deal = function(callback) {
 		});
 	}
 	
+	var add_prime_list = function(callback){
+		request.post(url.build('lists', {name: 'Home Row', idBoard: board, pos:'top'}), function(error, response, body){
+			if (error) console.log('error');
+			var id = JSON.parse(body).id;
+			
+			
+			request.post(url.build('cards', {name: 'Draw', idList: id}), function(error, response, body){
+				if (error) console.log('error');
+			});
+			request.post(url.build('cards', {name: 'Discard', idList: id}), function(error, response, body){
+				if (error) console.log('error');
+			});
+			request.post(url.build('cards', {name: 'Spades', idList: id}), function(error, response, body){
+				if (error) console.log('error');
+			});
+			request.post(url.build('cards', {name: 'Hearts', idList: id}), function(error, response, body){
+				if (error) console.log('error');
+			});
+			request.post(url.build('cards', {name: 'Clubs', idList: id}), function(error, response, body){
+				if (error) console.log('error');
+			});
+			request.post(url.build('cards', {name: 'Diamonds', idList: id}), function(error, response, body){
+				if (error) console.log('error');
+			});
+			
+			callback();
+		});
+	};
+	
 	var populate_piles = function(callback){
 		request(url.build('boards/'+board+'/lists', {cards: 'all'}), function(error, response, body){
 			if (error) console.log(error);
 			var lists = JSON.parse(body);
 			lists.forEach(function(list, i){
+				if (i === 0) return; //skip home row
 				list.cards.forEach(function(card){
-					piles[i].push(cards_on_table[card.id]);
+					piles[i-1].push(cards_on_table[card.id]);
 				});
 			});
 			callback();
@@ -182,7 +212,7 @@ deal = function(callback) {
 		pile_i += 1;
 		if (pile_i < 8) add_list(execute_next);
 	}
-	execute_next();
+	add_prime_list(execute_next);
 	
 	var finish = function(){
 		console.log('finishing:');
