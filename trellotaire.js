@@ -163,30 +163,58 @@ deal = function(callback) {
 		});
 	}
 	
-	var add_prime_list = function(callback){
+	var add_home_row = function(callback){
 		request.post(url.build('lists', {name: 'Home Row', idBoard: board, pos:'top'}), function(error, response, body){
 			if (error) console.log('error');
 			var id = JSON.parse(body).id;
 			
+			var funcs = [];
+			funcs.push(function(callback){
+				request.post(url.build('cards', {name: 'Draw', idList: id}), function(error, response, body){
+					if (error) console.log('error');
+					callback();
+				});
+				}
+			);funcs.push(function(callback){
+				request.post(url.build('cards', {name: 'Discard', idList: id}), function(error, response, body){
+					if (error) console.log('error');
+					callback();
+				});
+				}
+			);funcs.push(function(callback){
+				request.post(url.build('cards', {name: 'Spades', idList: id}), function(error, response, body){
+					if (error) console.log('error');
+					callback();
+				});
+				}
+			);funcs.push(function(callback){
+				request.post(url.build('cards', {name: 'Hearts', idList: id}), function(error, response, body){
+					if (error) console.log('error');
+					callback();
+				});
+				}
+			);funcs.push(function(callback){
+				request.post(url.build('cards', {name: 'Clubs', idList: id}), function(error, response, body){
+					if (error) console.log('error');
+					callback();
+				});
+				}
+			);funcs.push(function(callback){
+				request.post(url.build('cards', {name: 'Diamonds', idList: id}), function(error, response, body){
+					if (error) console.log('error');
+					callback();
+				});
+				}
+			);
 			
-			request.post(url.build('cards', {name: 'Draw', idList: id}), function(error, response, body){
-				if (error) console.log('error');
-			});
-			request.post(url.build('cards', {name: 'Discard', idList: id}), function(error, response, body){
-				if (error) console.log('error');
-			});
-			request.post(url.build('cards', {name: 'Spades', idList: id}), function(error, response, body){
-				if (error) console.log('error');
-			});
-			request.post(url.build('cards', {name: 'Hearts', idList: id}), function(error, response, body){
-				if (error) console.log('error');
-			});
-			request.post(url.build('cards', {name: 'Clubs', idList: id}), function(error, response, body){
-				if (error) console.log('error');
-			});
-			request.post(url.build('cards', {name: 'Diamonds', idList: id}), function(error, response, body){
-				if (error) console.log('error');
-			});
+			var func_i = 0;
+			var do_next = function(){
+				if (func_i < funcs.length){
+					func_i++;
+					funcs[func_i-1](do_next);
+				}	
+			};
+			do_next();
 			
 			callback();
 		});
@@ -212,7 +240,7 @@ deal = function(callback) {
 		pile_i += 1;
 		if (pile_i < 8) add_list(execute_next);
 	}
-	add_prime_list(execute_next);
+	add_home_row(execute_next);
 	
 	var finish = function(){
 		console.log('finishing:');
