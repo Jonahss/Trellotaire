@@ -38,7 +38,7 @@ dots = function(i){
 
 ////////////////////
 		
-var token = "bd17748b8ad0a44d023a8c60117c4d536f451ca78c64b716fdb8b975ed63dc8b" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "4c1144bb5a390ae71c9815a4a9fbf7bbec7ef5677e8bb7c3f3bdf37e42d864af" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfccd2f15f2f54a000a51';
 
 url.base = {
@@ -107,10 +107,13 @@ for (var x = 0; x < 7; x++){
 	piles[x] = new Array();
 }
 var pile_ids = new Array(7);
+var draw_id, discard_id, spades_id, hearts_id, clubs_id, diamonds_id;
 
 pic = function(card){
 	if (card === 'back')
 		return "https://s3.amazonaws.com/trellotaire-cards/back.png";
+	if (card === 'blue')
+		return "https://s3.amazonaws.com/trellotaire-cards/blue.png";
 	var val = 'default';
 	switch(card.value){
 		case 'J':
@@ -172,36 +175,45 @@ deal = function(callback) {
 			funcs.push(function(callback){
 				request.post(url.build('cards', {name: 'Draw', idList: id}), function(error, response, body){
 					if (error) console.log('error');
-					callback();
+					draw_id = JSON.parse(body).id;
+					request.post(url.build('cards/'+draw_id+'/attachments', {url: pic('blue'), name: 'blue'}), function(error, response, body){
+						if (error) {console.log(error)};
+						callback();
+					});
 				});
 				}
 			);funcs.push(function(callback){
 				request.post(url.build('cards', {name: 'Discard', idList: id}), function(error, response, body){
 					if (error) console.log('error');
+					discard_id = JSON.parse(body).id;
 					callback();
 				});
 				}
 			);funcs.push(function(callback){
 				request.post(url.build('cards', {name: 'Spades', idList: id}), function(error, response, body){
 					if (error) console.log('error');
+					spades_id = JSON.parse(body).id;
 					callback();
 				});
 				}
 			);funcs.push(function(callback){
 				request.post(url.build('cards', {name: 'Hearts', idList: id}), function(error, response, body){
 					if (error) console.log('error');
+					hearts_id = JSON.parse(body).id;
 					callback();
 				});
 				}
 			);funcs.push(function(callback){
 				request.post(url.build('cards', {name: 'Clubs', idList: id}), function(error, response, body){
 					if (error) console.log('error');
+					clubs_id = JSON.parse(body).id;
 					callback();
 				});
 				}
 			);funcs.push(function(callback){
 				request.post(url.build('cards', {name: 'Diamonds', idList: id}), function(error, response, body){
 					if (error) console.log('error');
+					diamonds_id = JSON.parse(body).id;
 					callback();
 				});
 				}
@@ -254,11 +266,32 @@ deal = function(callback) {
 	}
 }
 
-clear_board(function(){
-	deal(function(){
-		//debug(deck);
-	});
-});
+var play = function(){
+
+	var monitor_actions = function(){
+		request(url.build('boards/'+board+'/actions', {filter: 'updateCard', fields: 'data,type', since: 'lastView'}), function(error, response, body){
+			if (error) {console.log(error)};
+			var actions = JSON.parse(body);
+			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
+			else {
+				debug(body);
+				
+				request.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
+					if (error) {console.log(error)};
+					process.nextTick(monitor_actions);
+				});
+			}
+		});
+	}
+
+	monitor_actions();
+}
+
+//clear_board(function(){
+	//deal(function(){
+		play();
+	//});
+//});
 
 
 
