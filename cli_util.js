@@ -21,10 +21,34 @@ dots = function(i){
 	return arr.join('');
 };
 
+group = function(array, prop_path){
+	var ret = {};
+	for(var i = 0; i < array.length; i++){
+		var key = deep_prop(array[i], prop_path);
+		if (!ret[key]){
+			ret[key] = new Array();
+		}
+		ret[key].push(array[i]);
+	}
+	return ret;
+};
+exports.group = group;
+
+deep_prop = function(obj, prop_path){
+	if (!prop_path || prop_path == '') { return obj};
+	props = prop_path.split('.');
+	ret = obj;
+	for(var i = 0; i < props.length; i++){
+		ret = ret[props[i]];
+	}
+	return ret;
+};
+exports.deep_prop = deep_prop;
+
 var robotid = "daveshades";
 var key = "7c4a64bfd8a154965bd35714224a344e";
 var token = "dede66f209b07f6560140d3ba46a460b016b985196c74e1e064f420c3e425b4a" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
-var board = 
+
 
 url.base = {
 	protocol: 'https',

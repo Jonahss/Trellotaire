@@ -23,7 +23,7 @@ debug = function(o){
 	try {
 		console.log(pretty.render(JSON.parse(o)))
 	} catch (e){
-		console.log(o);
+		console.log(pretty.render(o));
 	}
 };
 
@@ -36,10 +36,32 @@ dots = function(i){
 	return arr.join('');
 };
 
+group = function(array, prop_path){
+	var ret = {};
+	for(var i = 0; i < array.length; i++){
+		var key = deep_prop(array[i], prop_path);
+		if (!ret[key]){
+			ret[key] = new Array();
+		}
+		ret[key].push(array[i]);
+	}
+	return ret;
+};
+
+deep_prop = function(obj, prop_path){
+	if (!prop_path || prop_path == '') { return obj};
+	props = prop_path.split('.');
+	ret = obj;
+	for(var i = 0; i < props.length; i++){
+		ret = ret[props[i]];
+	}
+	return ret;
+};
+
 ////////////////////
 		
-var token = "4c1144bb5a390ae71c9815a4a9fbf7bbec7ef5677e8bb7c3f3bdf37e42d864af" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
-var board = '50fdfccd2f15f2f54a000a51';
+var token = "7c37acd2b6fe3d03403927b27dbea79e6f6c37a01766cc8bfb21835e458d8223" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var board = '50fdfc8929f73b0f2e00147f';
 
 url.base = {
 	protocol: 'https',
@@ -275,6 +297,11 @@ var play = function(){
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
 				debug(body);
+				var actions = JSON.parse(body);
+				actions = group(actions, 'data.card.id');
+				for(var ac in actions){
+					validate_action(actions[ac]);
+				};
 				
 				request.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
 					if (error) {console.log(error)};
@@ -284,6 +311,11 @@ var play = function(){
 		});
 	}
 
+	var validate_action = function(action_group){
+		console.log('action group:');
+		debug(action_group);
+	};
+	
 	monitor_actions();
 }
 
