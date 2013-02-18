@@ -60,8 +60,9 @@ deep_prop = function(obj, prop_path){
 
 ////////////////////
 		
-var token = "7c37acd2b6fe3d03403927b27dbea79e6f6c37a01766cc8bfb21835e458d8223" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "f967ed592e5be64d892b9054b64c4a5db2686440d182897d3986956d524ce8d9" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
+var testing = true;
 
 url.base = {
 	protocol: 'https',
@@ -86,7 +87,7 @@ url.build = function(path, query){
 	return this.format(url);
 };
 
-request(url.build('members/'+vars.robotid+'/notifications'), function(error, response, body){
+request(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
 	if (error)
 		console.log(error);
 		
@@ -130,6 +131,7 @@ for (var x = 0; x < 7; x++){
 }
 var pile_ids = new Array(7);
 var draw_id, discard_id, spades_id, hearts_id, clubs_id, diamonds_id;
+if(testing){draw_id = '512183de34b467df1f00441c';pile_ids[0] = '512183de2703bfa961004e8e'};
 
 pic = function(card){
 	if (card === 'back')
@@ -290,14 +292,31 @@ deal = function(callback) {
 
 var play = function(){
 
+	var draw = function(){
+		console.log('draw a card');
+		request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error){
+			if (error) {console.log(error)};
+		});
+		var new_card = deck.draw();
+		request.post(url.build('cards',{name: new_card.toString(), idList: pile_ids[0]}), function(error, response, body){
+			console.log('add ' + new_card.toString() + 'to home row');
+			new_card.id = JSON.parse(body).id;
+				
+			request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic(new_card), name: new_card.toString()}), function(error, response, body){
+				if (error)
+					console.log(error);
+			});
+		});
+	};
+
 	var monitor_actions = function(){
 		request(url.build('boards/'+board+'/actions', {filter: 'updateCard', fields: 'data,type', since: 'lastView'}), function(error, response, body){
 			if (error) {console.log(error)};
 			var actions = JSON.parse(body);
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
-				debug(body);
 				var actions = JSON.parse(body);
+				actions = filter_robot_actions(actions);
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
 					validate_action(actions[ac]);
@@ -311,9 +330,35 @@ var play = function(){
 		});
 	}
 
+	var filter_robot_actions = function(actions){
+		for(var ac in actions){
+			console.log(actions[ac].memberCreator.id == vars.robotid);
+			if (actions[ac].memberCreator.id == vars.robotid){
+				delete actions[ac];
+				actions.length = actions.length-1;
+				console.log('ignoring one action');
+			}
+		}
+		return actions;
+	}
+	
 	var validate_action = function(action_group){
-		console.log('action group:');
-		debug(action_group);
+		console.log('-------------');
+		//signature of moving one card within a list
+		if (action_group.length == 1 && !action_group[Object.keys(action_group)[0]].data.listAfter){
+			console.log('moved one card within list');
+			var action = action_group[Object.keys(action_group)[0]];
+			debug(action);
+			//signature of drawing a card
+			if (action.data.card.id == draw_id){
+				draw();
+			}
+		}
+		//signature of moving a card to a new list
+		else {
+			debug(action_group);
+			console.log('moved card between two lists');
+		}
 	};
 	
 	monitor_actions();
