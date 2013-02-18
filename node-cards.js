@@ -41,9 +41,9 @@
  */
 
 var rand = require('./node-rand-utils');
-
+var date = new Date();
+rand.arc4.seed('JonahStiennon'+date.toString());
 exports.useArc4 = false;
-rand.arc4.seed('TheEventualCodeIsNoMoreThanTheDepositOfYourUnderstanding');
 
 // ------------------------------------------------------------------
 //  @class  Card
@@ -114,14 +114,14 @@ Pile.prototype.shiftInto = function(arr) {
 // ------------------------------------------------------------------
 //  @class  Deck
 
-var piles = ['deck', 'discard', 'held'];
+var piles = ['deck', 'discarded', 'held'];
 
 var Deck = exports.Deck = function(generator) {
 	this.cards    = new Pile();
 	this.deck     = new Pile();
 	this.held     = new Pile();
-	this.discard  = new Pile();
-	
+	this.discarded  = new Pile();
+
 	if (generator) {
 		if (typeof generator === 'string') {
 			generator = exports.generators[generator];
@@ -143,12 +143,12 @@ Deck.prototype.add = function(card, cfg) {
 		card.deck.remove(card);
 	}
 	card.deck = this;
-	
+
 	var pile = (cfg && cfg.pile) ? cfg.pile : 'deck';
 	if (piles.indexOf(pile) < 0) {
 		throw new Error('Cannot add card to non-existent pile "' + pile + '"');
 	}
-	
+
 	this.cards.push(card);
 	this[pile].push(card);
 };
@@ -162,12 +162,12 @@ Deck.prototype.add = function(card, cfg) {
  */
 Deck.prototype.remove = function(card) {
 	var self = this;
-	
+
 	Deck._remove(this.cards, card);
 	piles.forEach(function(pile) {
 		Deck._remove(self[pile], card);
 	});
-	
+
 	card.deck = null;
 };
 
@@ -188,20 +188,20 @@ Deck._remove = function(pile, card) {
  */
 Deck.prototype.draw = function(count, _into) {
 	var self = this;
-	
+
 	if (! this.deck.length) {
 		throw new RangeError('Cannot draw card from deck; No cards remaining.');
 	}
-	
+
 	if (!count){
 		return this.deck.shiftInto(_into || this.held);
 	}
-	
+
 	var cards = [ ];
 	for (var i = 0; i < count; i++){	
 		cards.push(self.draw(0, _into));
 	}
-	
+
 	return cards;
 };
 
@@ -213,7 +213,7 @@ Deck.prototype.draw = function(count, _into) {
  * @return  object
  */
 Deck.prototype.drawToDiscard = function(count) {
-	return this.draw(count, this.discard);
+	return this.draw(count, this.discarded);
 };
 
 /**
@@ -223,23 +223,15 @@ Deck.prototype.drawToDiscard = function(count) {
  * @param   object    the card object
  * @return  void
  */
-Deck.prototype.draw = function(count, _into) {
-	var self = this;
-
-	if (! this.deck.length) {
-		throw new RangeError('Cannot draw card from deck; No cards remaining.');
+Deck.prototype.discard = function(card) {
+	
+	card = this.find(card)[0];
+	if (! card) {
+		throw new Error('Given "card" value does not belong to this deck');
 	}
 
-	if (!count){
-		return this.deck.shiftInto(_into || this.held);
-	}
-
-	var cards = [ ];
-	for (var i = 0; i < count; i++){	
-		cards.push(self.draw(0, _into));
-	}
-
-	return cards;
+	card.pile.splice(card.index, 1);
+	this.discarded.push(card.card);
 };
 
 /**
@@ -289,7 +281,7 @@ Deck.prototype.find = function(card) {
  */
 Deck.prototype.shuffleAll = function() {
 	this.held.empty();
-	this.discard.empty();
+	this.discarded.empty();
 	this.deck.empty();
 	this.cards.copyInto(this.deck);
 	this.shuffleRemaining();
@@ -306,24 +298,24 @@ Deck.prototype.shuffleRemaining = function() {
 };
 
 /**
- * Shuffle the discard pile and append them to the deck
+ * Shuffle the discarded pile and append them to the deck
  *
  * @access  public
  * @return  void
  */
 Deck.prototype.shuffleDiscard = function() {
-	rand.shuffle(this.discard, exports.useArc4 ? 'ARC4' : 'SIMPLE');
-	this.discard.emptyInto(this.deck);	
+	rand.shuffle(this.discarded, exports.useArc4 ? 'ARC4' : 'SIMPLE');
+	this.discarded.emptyInto(this.deck);	
 };
 
 /**
- * Move all cards in the held pile to discard
+ * Move all cards in the held pile to discarded
  *
  * @access  public
  * @return  void
  */
 Deck.prototype.discardAllHeld = function() {
-	this.held.emptyInto(this.discard);
+	this.held.emptyInto(this.discarded);
 };
 
 /**
@@ -399,12 +391,12 @@ exports.generators = {
 			});
 		});
 	},
-	
+
 	oldMaid: function(deck) {
 		exports.generators.poker(deck);
 		deck.add(new Card('other', 'maid'));
 	},
-	
+
 	euchre: function(deck) {
 		['club', 'diamond', 'heart', 'spade'].forEach(function(suit) {
 			[9, 10, 'J', 'Q', 'K', 'A'].forEach(function(value) {
@@ -412,12 +404,12 @@ exports.generators = {
 			});
 		});
 	},
-	
+
 	pinochel: function(deck) {
 		exports.generators.euchre(deck);
 		exports.generators.euchre(deck);
 	},
-	
+
 	piquet: function(deck) {
 		['club', 'diamond', 'heart', 'spade'].forEach(function(suit) {
 			[7, 8, 9, 10, 'J', 'Q', 'K', 'A'].forEach(function(value) {
@@ -426,4 +418,3 @@ exports.generators = {
 		});
 	}
 };
-

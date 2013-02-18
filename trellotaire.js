@@ -38,6 +38,7 @@ dots = function(i){
 
 group = function(array, prop_path){
 	var ret = {};
+	console.log(array.length);
 	for(var i = 0; i < array.length; i++){
 		var key = deep_prop(array[i], prop_path);
 		if (!ret[key]){
@@ -62,7 +63,7 @@ deep_prop = function(obj, prop_path){
 		
 var token = "f967ed592e5be64d892b9054b64c4a5db2686440d182897d3986956d524ce8d9" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
-var testing = true;
+var testing = false;
 
 url.base = {
 	protocol: 'https',
@@ -130,6 +131,7 @@ for (var x = 0; x < 7; x++){
 	piles[x] = new Array();
 }
 var pile_ids = new Array(7);
+var home_row_id;
 var draw_id, discard_id, spades_id, hearts_id, clubs_id, diamonds_id;
 if(testing){draw_id = '512183de34b467df1f00441c';pile_ids[0] = '512183de2703bfa961004e8e'};
 
@@ -193,11 +195,11 @@ deal = function(callback) {
 	var add_home_row = function(callback){
 		request.post(url.build('lists', {name: 'Home Row', idBoard: board, pos:'top'}), function(error, response, body){
 			if (error) console.log('error');
-			var id = JSON.parse(body).id;
+			home_row_id = JSON.parse(body).id;
 			
 			var funcs = [];
 			funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Draw', idList: id}), function(error, response, body){
+				request.post(url.build('cards', {name: 'Draw', idList: home_row_id}), function(error, response, body){
 					if (error) console.log('error');
 					draw_id = JSON.parse(body).id;
 					request.post(url.build('cards/'+draw_id+'/attachments', {url: pic('blue'), name: 'blue'}), function(error, response, body){
@@ -207,35 +209,35 @@ deal = function(callback) {
 				});
 				}
 			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Discard', idList: id}), function(error, response, body){
+				request.post(url.build('cards', {name: 'Discard', idList: home_row_id}), function(error, response, body){
 					if (error) console.log('error');
 					discard_id = JSON.parse(body).id;
 					callback();
 				});
 				}
 			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Spades', idList: id}), function(error, response, body){
+				request.post(url.build('cards', {name: 'Spades', idList: home_row_id}), function(error, response, body){
 					if (error) console.log('error');
 					spades_id = JSON.parse(body).id;
 					callback();
 				});
 				}
 			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Hearts', idList: id}), function(error, response, body){
+				request.post(url.build('cards', {name: 'Hearts', idList: home_row_id}), function(error, response, body){
 					if (error) console.log('error');
 					hearts_id = JSON.parse(body).id;
 					callback();
 				});
 				}
 			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Clubs', idList: id}), function(error, response, body){
+				request.post(url.build('cards', {name: 'Clubs', idList: home_row_id}), function(error, response, body){
 					if (error) console.log('error');
 					clubs_id = JSON.parse(body).id;
 					callback();
 				});
 				}
 			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Diamonds', idList: id}), function(error, response, body){
+				request.post(url.build('cards', {name: 'Diamonds', idList: home_row_id}), function(error, response, body){
 					if (error) console.log('error');
 					diamonds_id = JSON.parse(body).id;
 					callback();
@@ -294,19 +296,32 @@ var play = function(){
 
 	var draw = function(){
 		console.log('draw a card');
+		
+		//Remove the current 'discard' card
+		request.del(url.build('cards/'+discard_id), function(error){
+			if (error) {console.log(error)};
+		});
+		
+		//Put the 'draw' card at the top of the home row
 		request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error){
 			if (error) {console.log(error)};
 		});
+		
+		//Add the new 'discard' card
 		var new_card = deck.draw();
-		request.post(url.build('cards',{name: new_card.toString(), idList: pile_ids[0]}), function(error, response, body){
+		//deck.discard(new_card);
+		request.post(url.build('cards',{name: 'discard', idList: home_row_id, pos: 2}), function(error, response, body){
 			console.log('add ' + new_card.toString() + 'to home row');
 			new_card.id = JSON.parse(body).id;
+			discard_id = new_card.id;
 				
 			request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic(new_card), name: new_card.toString()}), function(error, response, body){
-				if (error)
-					console.log(error);
+				if (error) {console.log(error);};
+				
+				
 			});
 		});
+		
 	};
 
 	var monitor_actions = function(){
@@ -316,6 +331,7 @@ var play = function(){
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
 				var actions = JSON.parse(body);
+				debug(actions);
 				actions = filter_robot_actions(actions);
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
@@ -331,14 +347,16 @@ var play = function(){
 	}
 
 	var filter_robot_actions = function(actions){
+		var deleted = 0;
 		for(var ac in actions){
 			console.log(actions[ac].memberCreator.id == vars.robotid);
 			if (actions[ac].memberCreator.id == vars.robotid){
 				delete actions[ac];
-				actions.length = actions.length-1;
+				deleted = deleted + 1;
 				console.log('ignoring one action');
 			}
 		}
+		actions.length = actions.length - deleted;
 		return actions;
 	}
 	
@@ -364,11 +382,11 @@ var play = function(){
 	monitor_actions();
 }
 
-//clear_board(function(){
-	//deal(function(){
+clear_board(function(){
+	deal(function(){
 		play();
-	//});
-//});
+	});
+});
 
 
 
