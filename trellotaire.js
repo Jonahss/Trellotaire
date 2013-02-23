@@ -255,6 +255,7 @@ deal = function(callback) {
 					piles[i-1].push(cards_on_table[card.id]);
 				});
 			});
+			console.log('finished populating in-memory piles')
 			callback();
 		});
 	};
@@ -270,6 +271,7 @@ deal = function(callback) {
 	var finish = function(){
 		console.log('finishing:');
 		populate_piles(function(){
+			console.log('flipping cards');
 			piles.forEach(function(pile){
 				pile[pile.length-1].flip();
 			});
@@ -289,24 +291,20 @@ var play = function(){
 		request.del(url.build('cards/'+discard_id), function(error){
 			if (error) {console.log(error)};
 		});
-		
-		//Put the 'draw' card at the top of the home row
-		request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error){
-			if (error) {console.log(error)};
 			
-			//Add the new 'discard' card
-			var new_card = deck.draw();
-			deck.discard(new_card);
-			request.post(url.build('cards',{name: 'discard', idList: home_row_id, pos: 2}), function(error, response, body){
-				console.log('add ' + new_card.toString() + 'to home row');
-				new_card.id = JSON.parse(body).id;
-				discard_id = new_card.id;
-					
-				request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic(new_card), name: new_card.toString()}), function(error, response, body){
-					if (error) {console.log(error);};
+		//Add the new 'discard' card
+		var new_card = deck.draw();
+		deck.discard(new_card);
+		post_card(new_card, home_row_id, pic(new_card), function(card){
+			discard_id = card.id;
+			request.put(url.build('cards/'+card.id+'/pos', {value: 'top'}), function(error, response, body){
+				if (error) { console.log(error); }
+				//Put the 'draw' card at the top of the home row
+				request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error, response, body){
+					if (error) {console.log(error)};
 				});
 			});
-		});	
+		});
 	};
 	
 	var use_drawn_card = function(action_group){
@@ -319,12 +317,14 @@ var play = function(){
 			if (previously_discarded){
 				deck.held.push(previously_discarded);
 				
-				request.post(url.build('cards',{name: 'discard', idList: home_row_id, pos: 2}), function(error, response, body){
-					console.log('add ' + previously_discarded.toString() + 'to home row');
-					previously_discarded.id = JSON.parse(body).id;
-					discard_id = previously_discarded.id;	
-					request.post(url.build('cards/'+previously_discarded.id+'/attachments', {url: pic(previously_discarded), name: previously_discarded.toString()}), function(error, response, body){
-						if (error) {console.log(error);};	
+				post_card(previously_discarded, home_row_id, pic(previously_discarded), function(card){
+					discard_id = card.id;
+					request.put(url.build('cards/'+card.id+'/pos', {value: 'top'}), function(error, response, body){
+						if (error) { console.log(error); }
+						//Put the 'draw' card at the top of the home row
+						request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error, response, body){
+							if (error) {console.log(error)};
+						});
 					});
 				});
 				
