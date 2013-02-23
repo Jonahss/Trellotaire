@@ -61,7 +61,7 @@ deep_prop = function(obj, prop_path){
 
 ////////////////////
 		
-var token = "f967ed592e5be64d892b9054b64c4a5db2686440d182897d3986956d524ce8d9" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "21fb8316329467935f81cb0babfe479df9e2bcb61c5125a8dd2b6d8554cdb5f4" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -88,12 +88,21 @@ url.build = function(path, query){
 	return this.format(url);
 };
 
-request(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
-	if (error)
-		console.log(error);
-		
-	debug(body);
-});
+var post_card = function(new_card, idList, pic, callback){
+	var name = new_card.toString();
+	if (typeof new_card == 'string') { new_card = new Object(); };
+	
+	request.post(url.build('cards',{name: name, idList: idList}), function(error, response, body){
+		if (error) { console.log(error); }
+		console.log('add ' + name);
+		new_card.id = JSON.parse(body).id;
+			
+		request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic, name: "image"}), function(error, response, body){
+			if (error) { console.log(error) };
+			callback(new_card);
+		});
+	});
+}
 
 var clear_board = function(callback){
 
@@ -116,7 +125,7 @@ var clear_board = function(callback){
 		if (list_ids.length == 0)
 			callback();
 		var completed = 0;
-		list_ids.forEach(function(id){ //manual implementation of async.forEach(); for funsies
+		list_ids.forEach(function(id){
 			close(id, function(){
 				completed+=1;
 				if (completed >= list_ids.length)
@@ -164,19 +173,12 @@ deal = function(callback) {
 
 	var cards_on_table = [];
 
-	upload_card = function(pile_i){
+	deal_card = function(pile_i){
 		var new_card = deck.draw();
-		request.post(url.build('cards',{name: new_card.toString(), idList: pile_ids[pile_i-1]}), function(error, response, body){
-			console.log('add ' + new_card.toString() + 'to pile ' + pile_i);
-			new_card.id = JSON.parse(body).id;
-				
-			request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic('back'), name: new_card.toString()}), function(error, response, body){
-				if (error)
-					console.log(error);
-				cards_on_table[new_card.id] = new_card;
-				if (Object.keys(cards_on_table).length == 28)
+		post_card(new_card, pile_ids[pile_i-1], pic('back'), function(new_card){
+			cards_on_table[new_card.id] = new_card;
+			if (Object.keys(cards_on_table).length == 28)
 					finish();
-			});
 		});
 	}
 
@@ -186,7 +188,7 @@ deal = function(callback) {
 			pile_ids[pile_i-1] = id;
 			
 			for(var card_i = 0; card_i < pile_i; card_i++){
-				upload_card(pile_i)
+				deal_card(pile_i)
 			}
 			callback();
 		});
@@ -199,51 +201,36 @@ deal = function(callback) {
 			
 			var funcs = [];
 			funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Draw', idList: home_row_id}), function(error, response, body){
-					if (error) console.log('error');
-					draw_id = JSON.parse(body).id;
-					request.post(url.build('cards/'+draw_id+'/attachments', {url: pic('blue'), name: 'blue'}), function(error, response, body){
-						if (error) {console.log(error)};
-						callback();
-					});
-				});
-				}
-			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Discard', idList: home_row_id}), function(error, response, body){
-					if (error) console.log('error');
-					discard_id = JSON.parse(body).id;
+				post_card('Draw', home_row_id, pic('blue'), function(card){
+					draw_id = card.id;
 					callback();
 				});
-				}
-			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Spades', idList: home_row_id}), function(error, response, body){
-					if (error) console.log('error');
-					spades_id = JSON.parse(body).id;
+			});funcs.push(function(callback){
+				post_card('Discard', home_row_id, pic('blue'), function(card){
+					discard_id = card.id;
 					callback();
 				});
-				}
-			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Hearts', idList: home_row_id}), function(error, response, body){
-					if (error) console.log('error');
-					hearts_id = JSON.parse(body).id;
+			});funcs.push(function(callback){
+				post_card('Spades', home_row_id, pic('blue'), function(card){
+					spades_id = card.id;
 					callback();
 				});
-				}
-			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Clubs', idList: home_row_id}), function(error, response, body){
-					if (error) console.log('error');
-					clubs_id = JSON.parse(body).id;
+			});funcs.push(function(callback){
+				post_card('Hearts', home_row_id, pic('blue'), function(card){
+					hearts_id = card.id;
 					callback();
 				});
-				}
-			);funcs.push(function(callback){
-				request.post(url.build('cards', {name: 'Diamonds', idList: home_row_id}), function(error, response, body){
-					if (error) console.log('error');
-					diamonds_id = JSON.parse(body).id;
+			});funcs.push(function(callback){
+				post_card('Clubs', home_row_id, pic('blue'), function(card){
+					clubs_id = card.id;
 					callback();
 				});
-				}
-			);
+			});funcs.push(function(callback){
+				post_card('diamonds', home_row_id, pic('blue'), function(card){
+					diamonds_id = card.id;
+					callback();
+				});
+			});
 			
 			var func_i = 0;
 			var do_next = function(){
@@ -296,6 +283,7 @@ var play = function(){
 
 	var draw = function(){
 		console.log('draw a card');
+		//TODO check that there are cards in the draw pile, duh.
 		
 		//Remove the current 'discard' card
 		request.del(url.build('cards/'+discard_id), function(error){
@@ -305,23 +293,50 @@ var play = function(){
 		//Put the 'draw' card at the top of the home row
 		request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error){
 			if (error) {console.log(error)};
-		});
-		
-		//Add the new 'discard' card
-		var new_card = deck.draw();
-		//deck.discard(new_card);
-		request.post(url.build('cards',{name: 'discard', idList: home_row_id, pos: 2}), function(error, response, body){
-			console.log('add ' + new_card.toString() + 'to home row');
-			new_card.id = JSON.parse(body).id;
-			discard_id = new_card.id;
-				
-			request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic(new_card), name: new_card.toString()}), function(error, response, body){
-				if (error) {console.log(error);};
-				
-				
+			
+			//Add the new 'discard' card
+			var new_card = deck.draw();
+			deck.discard(new_card);
+			request.post(url.build('cards',{name: 'discard', idList: home_row_id, pos: 2}), function(error, response, body){
+				console.log('add ' + new_card.toString() + 'to home row');
+				new_card.id = JSON.parse(body).id;
+				discard_id = new_card.id;
+					
+				request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic(new_card), name: new_card.toString()}), function(error, response, body){
+					if (error) {console.log(error);};
+				});
 			});
-		});
-		
+		});	
+	};
+	
+	var use_drawn_card = function(action_group){
+		if (!legal_placement(action_group)){
+			undo_placement(action_group);
+		}
+		else {
+			deck.held.push(deck.discarded.pop());
+			var previously_discarded = deck.discarded[deck.discarded.length-1];
+			if (previously_discarded){
+				deck.held.push(previously_discarded);
+				
+				request.post(url.build('cards',{name: 'discard', idList: home_row_id, pos: 2}), function(error, response, body){
+					console.log('add ' + previously_discarded.toString() + 'to home row');
+					previously_discarded.id = JSON.parse(body).id;
+					discard_id = previously_discarded.id;	
+					request.post(url.build('cards/'+previously_discarded.id+'/attachments', {url: pic(previously_discarded), name: previously_discarded.toString()}), function(error, response, body){
+						if (error) {console.log(error);};	
+					});
+				});
+				
+			}
+			else {
+				//TODO
+				//post dummy card
+				
+				//set discard_id to top discarded card.
+			}
+				
+		}
 	};
 
 	var monitor_actions = function(){
@@ -374,13 +389,34 @@ var play = function(){
 		}
 		//signature of moving a card to a new list
 		else {
-			debug(action_group);
 			console.log('moved card between two lists');
+			var action = action_group[Object.keys(action_group)[0]];
+			//signature of moving a drawn card to a list
+			if (action.data.card.id == discard_id){
+				use_drawn_card(action_group);
+			}
 		}
 	};
 	
+	var legal_placement = function(action_group){
+		console.log('legal placement filler code');
+		return true;
+	}
+	
+	var undo_placement = function(action_group){
+		console.log('undo placement filler code');
+	}
+	
 	monitor_actions();
 }
+
+
+request(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
+	if (error)
+		console.log(error);
+		
+	debug(body);
+});
 
 clear_board(function(){
 	deal(function(){
