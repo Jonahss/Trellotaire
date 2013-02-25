@@ -1,3 +1,6 @@
+//TODO change how flipping works to fit this change.
+//TODO change the home-row cards. hate that code anyways.
+
 var request = require('request'),
 	url 	= require('url'),
 	und		= require('underscore'),
@@ -88,13 +91,10 @@ url.build = function(path, query){
 	return this.format(url);
 };
 
-var post_card = function(new_card, idList, pic, callback){
-	var name = new_card.toString();
-	if (typeof new_card == 'string') { new_card = new Object(); };
-	
+var _post_card = function(new_card, name, idList, pic, callback){
 	request.post(url.build('cards',{name: name, idList: idList}), function(error, response, body){
 		if (error) { console.log(error); }
-		console.log('add ' + name);
+		console.log('add ' + new_card.toString());
 		new_card.id = JSON.parse(body).id;
 			
 		request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic, name: "image"}), function(error, response, body){
@@ -102,6 +102,16 @@ var post_card = function(new_card, idList, pic, callback){
 			callback(new_card);
 		});
 	});
+}
+
+var post_card_faceup = function(new_card, idList, callback){
+	var name = new_card.toString();
+	if (typeof new_card == 'string') { new_card = new Object(); };
+	_post_card(new_card, name, idList, pic(new_card), callback);
+}
+
+var post_card_facedown = function(new_card, idList, callback){
+	_post_card(new_card, '?', idList, pic('back'), callback);
 }
 
 var clear_board = function(callback){
@@ -188,7 +198,7 @@ deal = function(callback) {
 
 	deal_card = function(pile_i){
 		var new_card = deck.draw();
-		post_card(new_card, state.pile_ids[pile_i-1], pic('back'), function(new_card){
+		post_card_facedown(new_card, state.pile_ids[pile_i-1], function(new_card){
 			cards_on_table[new_card.id] = new_card;
 			if (Object.keys(cards_on_table).length == 28)
 					finish();
@@ -214,32 +224,32 @@ deal = function(callback) {
 			
 			var funcs = [];
 			funcs.push(function(callback){
-				post_card('Draw', state.home_row_id, pic('blue'), function(card){
+				post_card_faceup('Draw', state.home_row_id, function(card){
 					state.draw_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('Discard', state.home_row_id, pic('blue'), function(card){
+				post_card_faceup('Discard', state.home_row_id, function(card){
 					state.discard_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('Spades', state.home_row_id, pic('blue'), function(card){
+				post_card_faceup('Spades', state.home_row_id, function(card){
 					state.spades_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('Hearts', state.home_row_id, pic('blue'), function(card){
+				post_card_faceup('Hearts', state.home_row_id, function(card){
 					state.hearts_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('Clubs', state.home_row_id, pic('blue'), function(card){
+				post_card_faceup('Clubs', state.home_row_id, function(card){
 					state.clubs_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('diamonds', state.home_row_id, pic('blue'), function(card){
+				post_card_faceup('diamonds', state.home_row_id, function(card){
 					state.diamonds_id = card.id;
 					callback();
 				});
@@ -297,7 +307,7 @@ deal = function(callback) {
 var play = function(){
 
 	var to_discard_pile = function(discard_card, callback){
-		post_card(discard_card, state.home_row_id, pic(discard_card), function(card){
+		post_card_faceup(discard_card, state.home_row_id, function(card){
 			state.discard_id = card.id;
 			request.put(url.build('cards/'+card.id+'/pos', {value: 'top'}), function(error, response, body){
 				if (error) { console.log(error); }
