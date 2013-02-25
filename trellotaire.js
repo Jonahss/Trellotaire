@@ -61,7 +61,7 @@ deep_prop = function(obj, prop_path){
 
 ////////////////////
 		
-var token = "21fb8316329467935f81cb0babfe479df9e2bcb61c5125a8dd2b6d8554cdb5f4" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "cbabf48114493c41375e84e568dac466ea81876a50fef0e119ffd957406c6040" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -283,28 +283,38 @@ deal = function(callback) {
 
 var play = function(){
 
-	var draw = function(){
-		console.log('draw a card');
-		//TODO check that there are cards in the draw pile, duh.
-		
-		//Remove the current 'discard' card
-		request.del(url.build('cards/'+discard_id), function(error){
-			if (error) {console.log(error)};
-		});
-			
-		//Add the new 'discard' card
-		var new_card = deck.draw();
-		deck.discard(new_card);
-		post_card(new_card, home_row_id, pic(new_card), function(card){
+	var to_discard_pile = function(discard_card, callback){
+		post_card(discard_card, home_row_id, pic(discard_card), function(card){
 			discard_id = card.id;
 			request.put(url.build('cards/'+card.id+'/pos', {value: 'top'}), function(error, response, body){
 				if (error) { console.log(error); }
 				//Put the 'draw' card at the top of the home row
 				request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error, response, body){
 					if (error) {console.log(error)};
+					if (callback){ callback(); };
 				});
 			});
 		});
+	}
+
+	var draw = function(callback){
+		console.log('draw a card');
+		
+		//Remove the current 'discard' card
+		request.del(url.build('cards/'+discard_id), function(error){
+			if (error) {console.log(error)};
+		});
+		
+		var new_card;
+		try {
+			new_card = deck.draw();
+		} catch(er) {
+			deck.discarded.emptyInto(deck.deck);
+			new_card = deck.draw();
+		}
+		
+		deck.discard(new_card);
+		to_discard_pile(new_card, callback);
 	};
 	
 	var use_drawn_card = function(action_group){
@@ -316,18 +326,7 @@ var play = function(){
 			var previously_discarded = deck.discarded[deck.discarded.length-1];
 			if (previously_discarded){
 				deck.held.push(previously_discarded);
-				
-				post_card(previously_discarded, home_row_id, pic(previously_discarded), function(card){
-					discard_id = card.id;
-					request.put(url.build('cards/'+card.id+'/pos', {value: 'top'}), function(error, response, body){
-						if (error) { console.log(error); }
-						//Put the 'draw' card at the top of the home row
-						request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error, response, body){
-							if (error) {console.log(error)};
-						});
-					});
-				});
-				
+				to_discard_pile(previously_discarded);
 			}
 			else {
 				//TODO
@@ -346,7 +345,7 @@ var play = function(){
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
 				var actions = JSON.parse(body);
-				debug(actions);
+				//debug(actions);
 				actions = filter_robot_actions(actions);
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
@@ -364,7 +363,6 @@ var play = function(){
 	var filter_robot_actions = function(actions){
 		var deleted = 0;
 		for(var ac in actions){
-			console.log(actions[ac].memberCreator.id == vars.robotid);
 			if (actions[ac].memberCreator.id == vars.robotid){
 				delete actions[ac];
 				deleted = deleted + 1;
@@ -381,7 +379,7 @@ var play = function(){
 		if (action_group.length == 1 && !action_group[Object.keys(action_group)[0]].data.listAfter){
 			console.log('moved one card within list');
 			var action = action_group[Object.keys(action_group)[0]];
-			debug(action);
+
 			//signature of drawing a card
 			if (action.data.card.id == draw_id){
 				draw();
