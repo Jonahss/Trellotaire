@@ -135,14 +135,27 @@ var clear_board = function(callback){
 	});
 };
 
-var piles = new Array(7);
-for (var x = 0; x < 7; x++){
-	piles[x] = new Array();
-}
-var pile_ids = new Array(7);
 var home_row_id;
 var draw_id, discard_id, spades_id, hearts_id, clubs_id, diamonds_id;
-if(testing){draw_id = '512183de34b467df1f00441c';pile_ids[0] = '512183de2703bfa961004e8e'};
+
+var state = {
+	piles: (function(){
+				var piles = new Array(7);
+				for (var x = 0; x < 7; x++){
+					piles[x] = new Array();
+				}
+				return piles;
+			})(),
+	pile_ids: new Array(7),
+	home_row_id: home_row_id,
+	draw_id: draw_id,
+	discard_id: discard_id,
+	spades_id: spades_id,
+	hearts_id: hearts_id,
+	clubs_id: clubs_id,
+	diamonds_id: diamonds_id
+}
+
 
 pic = function(card){
 	if (card === 'back')
@@ -175,7 +188,7 @@ deal = function(callback) {
 
 	deal_card = function(pile_i){
 		var new_card = deck.draw();
-		post_card(new_card, pile_ids[pile_i-1], pic('back'), function(new_card){
+		post_card(new_card, state.pile_ids[pile_i-1], pic('back'), function(new_card){
 			cards_on_table[new_card.id] = new_card;
 			if (Object.keys(cards_on_table).length == 28)
 					finish();
@@ -185,7 +198,7 @@ deal = function(callback) {
 	var add_list = function(callback){
 		request.post(url.build('lists', {name: dots(pile_i), idBoard: board, pos:'bottom'}), function(error, response, body){
 			var id = JSON.parse(body).id;
-			pile_ids[pile_i-1] = id;
+			state.pile_ids[pile_i-1] = id;
 			
 			for(var card_i = 0; card_i < pile_i; card_i++){
 				deal_card(pile_i)
@@ -197,37 +210,37 @@ deal = function(callback) {
 	var add_home_row = function(callback){
 		request.post(url.build('lists', {name: 'Home Row', idBoard: board, pos:'top'}), function(error, response, body){
 			if (error) console.log('error');
-			home_row_id = JSON.parse(body).id;
+			state.home_row_id = JSON.parse(body).id;
 			
 			var funcs = [];
 			funcs.push(function(callback){
-				post_card('Draw', home_row_id, pic('blue'), function(card){
-					draw_id = card.id;
+				post_card('Draw', state.home_row_id, pic('blue'), function(card){
+					state.draw_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('Discard', home_row_id, pic('blue'), function(card){
-					discard_id = card.id;
+				post_card('Discard', state.home_row_id, pic('blue'), function(card){
+					state.discard_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('Spades', home_row_id, pic('blue'), function(card){
-					spades_id = card.id;
+				post_card('Spades', state.home_row_id, pic('blue'), function(card){
+					state.spades_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('Hearts', home_row_id, pic('blue'), function(card){
-					hearts_id = card.id;
+				post_card('Hearts', state.home_row_id, pic('blue'), function(card){
+					state.hearts_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('Clubs', home_row_id, pic('blue'), function(card){
-					clubs_id = card.id;
+				post_card('Clubs', state.home_row_id, pic('blue'), function(card){
+					state.clubs_id = card.id;
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card('diamonds', home_row_id, pic('blue'), function(card){
-					diamonds_id = card.id;
+				post_card('diamonds', state.home_row_id, pic('blue'), function(card){
+					state.diamonds_id = card.id;
 					callback();
 				});
 			});
@@ -252,7 +265,7 @@ deal = function(callback) {
 			lists.forEach(function(list, i){
 				if (i === 0) return; //skip home row
 				list.cards.forEach(function(card){
-					piles[i-1].push(cards_on_table[card.id]);
+					state.piles[i-1].push(cards_on_table[card.id]);
 				});
 			});
 			console.log('finished populating in-memory piles')
@@ -272,7 +285,7 @@ deal = function(callback) {
 		console.log('finishing:');
 		populate_piles(function(){
 			console.log('flipping cards');
-			piles.forEach(function(pile){
+			state.piles.forEach(function(pile){
 				pile[pile.length-1].flip();
 			});
 		});
@@ -284,12 +297,12 @@ deal = function(callback) {
 var play = function(){
 
 	var to_discard_pile = function(discard_card, callback){
-		post_card(discard_card, home_row_id, pic(discard_card), function(card){
-			discard_id = card.id;
+		post_card(discard_card, state.home_row_id, pic(discard_card), function(card){
+			state.discard_id = card.id;
 			request.put(url.build('cards/'+card.id+'/pos', {value: 'top'}), function(error, response, body){
 				if (error) { console.log(error); }
 				//Put the 'draw' card at the top of the home row
-				request.put(url.build('cards/'+draw_id+'/pos', {value: 'top'}), function(error, response, body){
+				request.put(url.build('cards/'+state.draw_id+'/pos', {value: 'top'}), function(error, response, body){
 					if (error) {console.log(error)};
 					if (callback){ callback(); };
 				});
@@ -301,7 +314,7 @@ var play = function(){
 		console.log('draw a card');
 		
 		//Remove the current 'discard' card
-		request.del(url.build('cards/'+discard_id), function(error){
+		request.del(url.build('cards/'+state.discard_id), function(error){
 			if (error) {console.log(error)};
 		});
 		
@@ -318,24 +331,14 @@ var play = function(){
 	};
 	
 	var use_drawn_card = function(action_group){
-		if (!legal_placement(action_group)){
-			undo_placement(action_group);
-		}
-		else {
+		if_legal(action_group, function(){
 			deck.held.push(deck.discarded.pop());
 			var previously_discarded = deck.discarded[deck.discarded.length-1];
 			if (previously_discarded){
 				deck.held.push(previously_discarded);
 				to_discard_pile(previously_discarded);
-			}
-			else {
-				//TODO
-				//post dummy card
-				
-				//set discard_id to top discarded card.
-			}
-				
-		}
+			}	
+		});
 	};
 
 	var monitor_actions = function(){
@@ -345,7 +348,6 @@ var play = function(){
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
 				var actions = JSON.parse(body);
-				//debug(actions);
 				actions = filter_robot_actions(actions);
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
@@ -381,7 +383,7 @@ var play = function(){
 			var action = action_group[Object.keys(action_group)[0]];
 
 			//signature of drawing a card
-			if (action.data.card.id == draw_id){
+			if (action.data.card.id == state.draw_id){
 				draw();
 			}
 		}
@@ -390,19 +392,20 @@ var play = function(){
 			console.log('moved card between two lists');
 			var action = action_group[Object.keys(action_group)[0]];
 			//signature of moving a drawn card to a list
-			if (action.data.card.id == discard_id){
+			if (action.data.card.id == state.discard_id){
 				use_drawn_card(action_group);
 			}
 		}
 	};
 	
-	var legal_placement = function(action_group){
+	//calls callback if placement is legal, undoes move if illegal
+	var if_legal = function(action_group, callback){
+		debug(action_group)
+		var moved_card = action_group[Object.keys(action_group)[0]].data.card.id;
+		//var new //list after and list before.. make action_group some sort of smarter object.
 		console.log('legal placement filler code');
-		return true;
-	}
-	
-	var undo_placement = function(action_group){
-		console.log('undo placement filler code');
+		
+		callback();
 	}
 	
 	monitor_actions();
