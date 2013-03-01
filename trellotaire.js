@@ -91,6 +91,62 @@ url.build = function(path, query){
 	return this.format(url);
 };
 
+
+
+var home_row_id;
+var draw_id, discard_id, spades_id, hearts_id, clubs_id, diamonds_id;
+
+var state = {
+	piles: (function(){
+				var piles = new Array(7);
+				for (var x = 0; x < 7; x++){
+					piles[x] = new Array();
+				}
+				return piles;
+			})(),
+	pile_ids: new Array(7),
+	home_row_id: home_row_id,
+	draw_id: draw_id,
+	discard_id: discard_id,
+	spades_id: spades_id,
+	hearts_id: hearts_id,
+	clubs_id: clubs_id,
+	diamonds_id: diamonds_id
+}
+
+var Action = function(action_group){
+	//move within list
+	//move between lists
+	//card id
+	//from list
+	//to list
+}
+
+pic = function(card){
+	if (card === 'back')
+		return "https://s3.amazonaws.com/trellotaire-cards/back.png";
+	if (card === 'blue')
+		return "https://s3.amazonaws.com/trellotaire-cards/blue.png";
+	var val = 'default';
+	switch(card.value){
+		case 'J':
+			val = 'Jack';
+			break;
+		case 'Q':
+			val = 'Queen';
+			break;
+		case 'K':
+			val = 'King';
+			break;
+		case 'A':
+			val = 'Ace';
+			break;
+		default:
+			val = card.value;
+	}
+	return "https://s3.amazonaws.com/trellotaire-cards/"+val+"+of+"+card.suit+"s.png";
+}
+
 var _post_card = function(new_card, name, idList, pic, callback){
 	request.post(url.build('cards',{name: name, idList: idList}), function(error, response, body){
 		if (error) { console.log(error); }
@@ -144,53 +200,6 @@ var clear_board = function(callback){
 		});
 	});
 };
-
-var home_row_id;
-var draw_id, discard_id, spades_id, hearts_id, clubs_id, diamonds_id;
-
-var state = {
-	piles: (function(){
-				var piles = new Array(7);
-				for (var x = 0; x < 7; x++){
-					piles[x] = new Array();
-				}
-				return piles;
-			})(),
-	pile_ids: new Array(7),
-	home_row_id: home_row_id,
-	draw_id: draw_id,
-	discard_id: discard_id,
-	spades_id: spades_id,
-	hearts_id: hearts_id,
-	clubs_id: clubs_id,
-	diamonds_id: diamonds_id
-}
-
-
-pic = function(card){
-	if (card === 'back')
-		return "https://s3.amazonaws.com/trellotaire-cards/back.png";
-	if (card === 'blue')
-		return "https://s3.amazonaws.com/trellotaire-cards/blue.png";
-	var val = 'default';
-	switch(card.value){
-		case 'J':
-			val = 'Jack';
-			break;
-		case 'Q':
-			val = 'Queen';
-			break;
-		case 'K':
-			val = 'King';
-			break;
-		case 'A':
-			val = 'Ace';
-			break;
-		default:
-			val = card.value;
-	}
-	return "https://s3.amazonaws.com/trellotaire-cards/"+val+"+of+"+card.suit+"s.png";
-}
 
 deal = function(callback) {
 
@@ -421,20 +430,20 @@ var play = function(){
 	monitor_actions();
 }
 
-
+debugger;
 request(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
 	if (error)
 		console.log(error);
 		
 	debug(body);
 });
-
+/*
 clear_board(function(){
 	deal(function(){
 		play();
 	});
 });
-
+*/
 
 
 
