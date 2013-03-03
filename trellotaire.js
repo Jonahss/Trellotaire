@@ -174,7 +174,7 @@ var post_card_facedown = function(new_card, idList, callback){
 	_post_card(new_card, '?', idList, pic('back'), callback);
 }
 
-var load_state = function(){
+var load_state = function(callback){
 	var state = new State();
 	request(url.build('boards/'+board+'/lists', {cards: 'open', card_fields: 'name,idList'}), function(error, response, body){
 		if (error) { console.log(error) }
@@ -196,23 +196,10 @@ var load_state = function(){
 			}
 		};
 		
-		debug(state)
-		return state;
+		console.log('state loaded');
+		callback(state);
 	});
-	/*
-	
-	
-	piles: (function(){
-				var piles = new Array(7);
-				for (var x = 0; x < 7; x++){
-					piles[x] = new Array();
-				}
-				return piles;
-			})(),
-	
-	return state;*/
 }
-load_state();
 
 var clear_board = function(callback){
 
@@ -431,7 +418,6 @@ var play = function(){
 			if (actions[ac].memberCreator.id == vars.robotid){
 				delete actions[ac];
 				deleted = deleted + 1;
-				console.log('ignoring one action');
 			}
 		}
 		actions.length = actions.length - deleted;
@@ -480,6 +466,13 @@ request(url.build('members/'+vars.robot+'/notifications'), function(error, respo
 		
 	debug(body);
 });
+
+load_state(function(new_state){
+	state = new_state;
+	play();
+});
+
+
 /*
 clear_board(function(){
 	deal(function(){
