@@ -119,11 +119,24 @@ var State = function(){ return {
 var state = new State();
 
 var Action = function(action_group){
-	//move within list
-	//move between lists
-	//card id
-	//from list
-	//to list
+	var ret = new Object();
+	var movement_action;
+	for(var action in action_group){
+		ret.cardId = action_group[action].data.card.id;
+		if (action_group[action].data.listAfter){
+			movement_action = action_group[action];
+			ret.betweenLists = true;
+			ret.fromList = movement_action.data.listBefore.id;
+			ret.toList = movement_action.data.listAfter.id;
+			break;
+		}
+	}
+	
+	if (!movement_action){
+		ret.withinList = true;
+	}
+	debug('creating action')
+	return ret;
 }
 
 pic = function(card){
@@ -380,8 +393,8 @@ var play = function(){
 		to_discard_pile(new_card, callback);
 	};
 	
-	var use_drawn_card = function(action_group){
-		if_legal(action_group, function(){
+	var use_drawn_card = function(action){
+		if_legal(action, function(){
 			deck.held.push(deck.discarded.pop());
 			var previously_discarded = deck.discarded[deck.discarded.length-1];
 			if (previously_discarded){
@@ -401,7 +414,8 @@ var play = function(){
 				actions = filter_robot_actions(actions);
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
-					validate_action(actions[ac]);
+					var action = new Action(actions[ac]);
+					validate_action(action);
 				};
 				
 				request.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
@@ -424,34 +438,32 @@ var play = function(){
 		return actions;
 	}
 	
-	var validate_action = function(action_group){
+	var validate_action = function(action){
 		console.log('-------------');
+		debug(action);
 		//signature of moving one card within a list
-		if (action_group.length == 1 && !action_group[Object.keys(action_group)[0]].data.listAfter){
+		if (action.withinList){
 			console.log('moved one card within list');
-			var action = action_group[Object.keys(action_group)[0]];
 
 			//signature of drawing a card
-			if (action.data.card.id == state.draw_id){
+			if (action.cardId == state.draw_id){
 				draw();
 			}
 		}
 		//signature of moving a card to a new list
 		else {
 			console.log('moved card between two lists');
-			var action = action_group[Object.keys(action_group)[0]];
+			
 			//signature of moving a drawn card to a list
-			if (action.data.card.id == state.discard_id){
-				use_drawn_card(action_group);
+			if (action.cardId == state.discard_id){
+				use_drawn_card(action);
 			}
 		}
 	};
 	
 	//calls callback if placement is legal, undoes move if illegal
-	var if_legal = function(action_group, callback){
-		debug(action_group)
-		var moved_card = action_group[Object.keys(action_group)[0]].data.card.id;
-		//var new //list after and list before.. make action_group some sort of smarter object.
+	var if_legal = function(action, callback){
+		
 		console.log('legal placement filler code');
 		
 		callback();
