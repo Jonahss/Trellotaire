@@ -62,9 +62,17 @@ deep_prop = function(obj, prop_path){
 	return ret;
 };
 
+to_map = function(array, lambda){
+	var map = {};
+	for (var i = 0; i < array.length; i++){
+		map[lambda(array[i])] = array[i];
+	}
+	return map;
+}
+
 ////////////////////
 		
-var token = "cbabf48114493c41375e84e568dac466ea81876a50fef0e119ffd957406c6040" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "4c8a3c584721ada8727629fcbc532dc844c96e5ad75a4800edc16ef2698109bf" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -91,12 +99,7 @@ url.build = function(path, query){
 	return this.format(url);
 };
 
-
-
-var home_row_id;
-var draw_id, discard_id, spades_id, hearts_id, clubs_id, diamonds_id;
-
-var state = {
+var State = function(){ return {
 	piles: (function(){
 				var piles = new Array(7);
 				for (var x = 0; x < 7; x++){
@@ -105,14 +108,15 @@ var state = {
 				return piles;
 			})(),
 	pile_ids: new Array(7),
-	home_row_id: home_row_id,
-	draw_id: draw_id,
-	discard_id: discard_id,
-	spades_id: spades_id,
-	hearts_id: hearts_id,
-	clubs_id: clubs_id,
-	diamonds_id: diamonds_id
-}
+	home_row_id: null,
+	draw_id: null,
+	discard_id: null,
+	spades_id: null,
+	hearts_id: null,
+	clubs_id: null,
+	diamonds_id: null
+}}
+var state = new State();
 
 var Action = function(action_group){
 	//move within list
@@ -169,6 +173,46 @@ var post_card_faceup = function(new_card, idList, callback){
 var post_card_facedown = function(new_card, idList, callback){
 	_post_card(new_card, '?', idList, pic('back'), callback);
 }
+
+var load_state = function(){
+	var state = new State();
+	request(url.build('boards/'+board+'/lists', {cards: 'open', card_fields: 'name,idList'}), function(error, response, body){
+		if (error) { console.log(error) }
+		var lists = JSON.parse(body);
+		lists = to_map(lists, function(x){ return x.name });
+		
+		//Populate hom_row_id and the cards within it
+		state.home_row_id = lists["Home Row"].id;
+		var home_row_cards = to_map(lists["Home Row"].cards, function(x){ return x.name.toLowerCase() })
+		var names = ['draw', 'discard', 'spades', 'hearts', 'clubs', 'diamonds'];
+		names.forEach(function(name){
+			state[name+'_id'] = home_row_cards[name]? home_row_cards[name].id : null;
+		});
+		
+		delete lists['Home Row'];
+		for(var list in lists){
+			if (list){
+				state.pile_ids.push(lists[list].id);
+			}
+		};
+		
+		debug(state)
+		return state;
+	});
+	/*
+	
+	
+	piles: (function(){
+				var piles = new Array(7);
+				for (var x = 0; x < 7; x++){
+					piles[x] = new Array();
+				}
+				return piles;
+			})(),
+	
+	return state;*/
+}
+load_state();
 
 var clear_board = function(callback){
 
@@ -258,7 +302,7 @@ deal = function(callback) {
 					callback();
 				});
 			});funcs.push(function(callback){
-				post_card_faceup('diamonds', state.home_row_id, function(card){
+				post_card_faceup('Diamonds', state.home_row_id, function(card){
 					state.diamonds_id = card.id;
 					callback();
 				});
@@ -430,7 +474,6 @@ var play = function(){
 	monitor_actions();
 }
 
-debugger;
 request(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
 	if (error)
 		console.log(error);
