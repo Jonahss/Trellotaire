@@ -14,10 +14,46 @@ deck.shuffleRemaining();
 cards.Card.prototype.flip = function(){
 	if (!this.id) console.log('trying to flip card with no id');
 	request.post(url.build('cards/'+this.id+'/attachments', {url: pic(this), name: this.toString()}), function(error, response, body){
-		if (error)
-			console.log(error);
+		if (error) { console.log(error) };
+	});
+	request.put(url.build('cards/'+this.id+'/name', {value: this.toString()}), function(error){
+		if (error) { console.log(error) };
 	});
 };
+cards.Card.prototype.toString = function(){
+	return this.suit + ':' + this.value;
+}
+cards.Card.prototype.getColor = function(){
+	if (this.suit == 'spade' || this.suit == 'club')
+		return 'black';
+	if (this.suit == 'heart' || this.suit == 'diamond')
+		return 'red'
+	return null;
+}
+cards.Card.prototype.getNumericalValue = function(){
+	switch this.value {
+		case 'A':
+			return 1;
+		case 'J':
+			return 11;
+		case 'Q':
+			return 12;
+		case 'K':
+			return 13;
+		default:
+			return this.value;
+	}
+}
+cards.from_s = function(s){
+	if (!s){ return null; }
+	
+	var vals = s.split(':')
+	if (vals.length != 2){
+		console.log('invalid string used to create a card');
+		return null;
+	}
+	return new this.Card(vals[0], vals[1]);
+}
 	
 //Utility Functions
 
@@ -162,6 +198,12 @@ pic = function(card){
 			val = card.value;
 	}
 	return "https://s3.amazonaws.com/trellotaire-cards/"+val+"+of+"+card.suit+"s.png";
+}
+
+
+
+cards.cardFromString = function(s){
+	
 }
 
 var _post_card = function(new_card, name, idList, pic, callback){
@@ -400,7 +442,10 @@ var play = function(){
 			if (previously_discarded){
 				deck.held.push(previously_discarded);
 				to_discard_pile(previously_discarded);
-			}	
+			} else {
+				//TODO to_discard_pile(placeholder)
+				//otherwise state.discard_id is still the moved card, so it is removed when you next draw a card.
+			}
 		});
 	};
 
@@ -463,8 +508,30 @@ var play = function(){
 	
 	//calls callback if placement is legal, undoes move if illegal
 	var if_legal = function(action, callback){
+	
+		var legal_order = function(first, second){
+			if (!first){
+				if (second.name == )
+			}
+			first = cards.from_s(first.name);
+			
+		}
+	
+		console.log('legal placement?');
 		
-		console.log('legal placement filler code');
+		//legal if placed at the bottom of a list where the card above is one value higher and of the opposite color (take into account that the list may be empty)
+		request(url.build('lists/'+action.toList+'/cards'), function(error, response, body){
+			var cards = JSON.parse(body);
+			var last_index = cards.length-1;
+			if (cards[last_index].id == action.cardId && legal_order(cards[last_index-1], cards[last_index])){
+				debug("it's legal");
+				//TODO move entire stack beneath moved card
+			} else {
+				debug("not legal");
+				//TODO move the card to previous list and previous position
+			}
+		});
+		
 		
 		callback();
 	}
