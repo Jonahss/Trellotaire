@@ -31,7 +31,7 @@ cards.Card.prototype.getColor = function(){
 	return null;
 }
 cards.Card.prototype.getNumericalValue = function(){
-	switch this.value {
+	switch (this.value) {
 		case 'A':
 			return 1;
 		case 'J':
@@ -108,7 +108,7 @@ to_map = function(array, lambda){
 
 ////////////////////
 		
-var token = "4c8a3c584721ada8727629fcbc532dc844c96e5ad75a4800edc16ef2698109bf" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "f926048ca877ae04e35b668ba42ecaa837000f9b505debe92467a19f534165df" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -510,11 +510,19 @@ var play = function(){
 	var if_legal = function(action, callback){
 	
 		var legal_order = function(first, second){
-			if (!first){
-				if (second.name == )
+		
+			//TODO is from_s tries to run on a non-flipped card, well then '?' won't do. but it's illegal anyways so there!
+		
+			
+			second = cards.from_s(second.name);
+			if (!first) {
+				if (second.name == 'K')
+					return true;
+				return false;
 			}
 			first = cards.from_s(first.name);
 			
+			return false;
 		}
 	
 		console.log('legal placement?');
@@ -523,9 +531,11 @@ var play = function(){
 		request(url.build('lists/'+action.toList+'/cards'), function(error, response, body){
 			var cards = JSON.parse(body);
 			var last_index = cards.length-1;
+			debug(cards[last_index])
 			if (cards[last_index].id == action.cardId && legal_order(cards[last_index-1], cards[last_index])){
 				debug("it's legal");
 				//TODO move entire stack beneath moved card
+				//waterfall/recursive function. call a move, detect the move with this function
 			} else {
 				debug("not legal");
 				//TODO move the card to previous list and previous position
@@ -536,7 +546,10 @@ var play = function(){
 		callback();
 	}
 	
-	monitor_actions();
+	request.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
+		if (error) {console.log(error)};
+		monitor_actions();
+	});
 }
 
 request(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
@@ -546,8 +559,14 @@ request(url.build('members/'+vars.robot+'/notifications'), function(error, respo
 	debug(body);
 });
 
+
 load_state(function(new_state){
 	state = new_state;
+	var x = deck.draw();
+	x = cards.from_s(x.toString());
+	console.log(x.toString());
+	console.log(x.getColor());
+	console.log(x.getNumericalValue());
 	play();
 });
 
@@ -559,6 +578,7 @@ clear_board(function(){
 	});
 });
 */
+
 
 
 
