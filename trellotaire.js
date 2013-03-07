@@ -164,7 +164,10 @@ var Action = function(action_group){
 			ret.betweenLists = true;
 			ret.fromList = movement_action.data.listBefore.id;
 			ret.toList = movement_action.data.listAfter.id;
-			break;
+			continue;
+		}
+		if (action_group[action].data.old.pos){
+			ret.fromPos = action_group[action].data.old.pos;
 		}
 	}
 	
@@ -443,8 +446,7 @@ var play = function(){
 				deck.held.push(previously_discarded);
 				to_discard_pile(previously_discarded);
 			} else {
-				//TODO to_discard_pile(placeholder)
-				//otherwise state.discard_id is still the moved card, so it is removed when you next draw a card.
+				to_discard_pile('Discard')
 			}
 		});
 	};
@@ -511,8 +513,6 @@ var play = function(){
 	
 		var legal_order = function(first, second){
 		
-			//TODO is from_s tries to run on a non-flipped card, well then '?' won't do. but it's illegal anyways so there!
-			
 			second = cards.from_s(second.name);
 			if (!first) {
 				if (second.value == 'K')
@@ -520,6 +520,9 @@ var play = function(){
 				return false;
 			}
 			first = cards.from_s(first.name);
+			if (first.getColor() != second.getColor() && first.getNumericalValue()-1 == second.getNumericalValue()){
+				return true;
+			}
 			
 			return false;
 		}
@@ -534,14 +537,16 @@ var play = function(){
 				debug("it's legal");
 				//TODO move entire stack beneath moved card
 				//waterfall/recursive function. call a move, detect the move with this function
+				callback();
 			} else {
 				debug("not legal");
-				//TODO move the card to previous list and previous position
+				//move the card to previous list and previous position
+				request.put(url.build('cards/'+action.cardId, {idList: action.fromList, pos: action.fromPos}), function(error, response, body){
+					if (error){ console.log(error); }
+					debug(body);
+				});
 			}
 		});
-		
-		
-		callback();
 	}
 	
 	request.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
@@ -560,7 +565,7 @@ request(url.build('members/'+vars.robot+'/notifications'), function(error, respo
 
 load_state(function(new_state){
 	state = new_state;
-	var x = cards.from_s("club:K")
+	var x = cards.from_s("club:7")
 	post_card_faceup(x, state.home_row_id, function(card){
 		state.discard_id = card.id;
 		play();
