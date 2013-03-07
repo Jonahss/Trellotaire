@@ -108,7 +108,7 @@ to_map = function(array, lambda){
 
 ////////////////////
 		
-var token = "f926048ca877ae04e35b668ba42ecaa837000f9b505debe92467a19f534165df" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "822970b7fae616dfb383c1af7ba462e6ccb55a352d2a3dc6bd78a839c1868ab5" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -512,11 +512,10 @@ var play = function(){
 		var legal_order = function(first, second){
 		
 			//TODO is from_s tries to run on a non-flipped card, well then '?' won't do. but it's illegal anyways so there!
-		
 			
 			second = cards.from_s(second.name);
 			if (!first) {
-				if (second.name == 'K')
+				if (second.value == 'K')
 					return true;
 				return false;
 			}
@@ -531,7 +530,6 @@ var play = function(){
 		request(url.build('lists/'+action.toList+'/cards'), function(error, response, body){
 			var cards = JSON.parse(body);
 			var last_index = cards.length-1;
-			debug(cards[last_index])
 			if (cards[last_index].id == action.cardId && legal_order(cards[last_index-1], cards[last_index])){
 				debug("it's legal");
 				//TODO move entire stack beneath moved card
@@ -562,14 +560,12 @@ request(url.build('members/'+vars.robot+'/notifications'), function(error, respo
 
 load_state(function(new_state){
 	state = new_state;
-	var x = deck.draw();
-	x = cards.from_s(x.toString());
-	console.log(x.toString());
-	console.log(x.getColor());
-	console.log(x.getNumericalValue());
-	play();
+	var x = cards.from_s("club:K")
+	post_card_faceup(x, state.home_row_id, function(card){
+		state.discard_id = card.id;
+		play();
+	});
 });
-
 
 /*
 clear_board(function(){
@@ -577,8 +573,8 @@ clear_board(function(){
 		play();
 	});
 });
-*/
 
+*/
 
 
 
