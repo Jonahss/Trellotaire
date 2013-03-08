@@ -108,7 +108,7 @@ to_map = function(array, lambda){
 
 ////////////////////
 		
-var token = "822970b7fae616dfb383c1af7ba462e6ccb55a352d2a3dc6bd78a839c1868ab5" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "9a63ea757e69206c7b3183777ad154b68cea92662e14ac8390e6c37228e7a10b" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -438,7 +438,17 @@ var play = function(){
 		to_discard_pile(new_card, callback);
 	};
 	
-	var use_drawn_card = function(action){
+	var flip_unlocked_card = function(listId){
+		request(url.build('lists/'+listId+'/cards', {fields: 'name'}), function(error, response,body){
+			var cards = JSON.parse(body);
+			bottom_card = cardsp[cards.length-1];
+			if (bottom_card.name == '?'){
+				flip_card(bottom_card.id);
+			}
+		});
+	};
+	
+	var used_drawn_card = function(action){
 		if_legal(action, function(){
 			deck.held.push(deck.discarded.pop());
 			var previously_discarded = deck.discarded[deck.discarded.length-1];
@@ -448,6 +458,14 @@ var play = function(){
 			} else {
 				to_discard_pile('Discard')
 			}
+		});
+	};
+	
+	var moved_card_between_piles = function(action){
+		if_legal(action, function(){
+			//waterfall move
+			//flip unlocked cards
+			flip_unlocked_card(action.fromList);
 		});
 	};
 
@@ -462,7 +480,7 @@ var play = function(){
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
 					var action = new Action(actions[ac]);
-					validate_action(action);
+					categorize_action(action);
 				};
 				
 				request.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
@@ -485,7 +503,7 @@ var play = function(){
 		return actions;
 	}
 	
-	var validate_action = function(action){
+	var categorize_action = function(action){
 		console.log('-------------');
 		debug(action);
 		//signature of moving one card within a list
@@ -501,18 +519,23 @@ var play = function(){
 		else {
 			console.log('moved card between two lists');
 			
-			//signature of moving a drawn card to a list
+			//signature of moving a drawn card to a pile
 			if (action.cardId == state.discard_id){
-				use_drawn_card(action);
+				used_drawn_card(action);
+			}
+			//signature of moving a card from one pile to another
+			else {
+				moved_card_between_piles(action);
 			}
 		}
 	};
 	
 	//calls callback if placement is legal, undoes move if illegal
 	var if_legal = function(action, callback){
-	
+
 		var legal_order = function(first, second){
-		
+//TEST
+return true;	
 			second = cards.from_s(second.name);
 			if (!first) {
 				if (second.value == 'K')
@@ -543,7 +566,6 @@ var play = function(){
 				//move the card to previous list and previous position
 				request.put(url.build('cards/'+action.cardId, {idList: action.fromList, pos: action.fromPos}), function(error, response, body){
 					if (error){ console.log(error); }
-					debug(body);
 				});
 			}
 		});
