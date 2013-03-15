@@ -44,7 +44,7 @@ cards.Card.prototype.getNumericalValue = function(){
 			return this.value;
 	}
 }
-cards.from_s = function(s){
+cards.from_s = function(s, id){
 	if (!s){ return null; }
 	
 	var vals = s.split(':')
@@ -52,7 +52,9 @@ cards.from_s = function(s){
 		console.log('invalid string used to create a card');
 		return null;
 	}
-	return new this.Card(vals[0], vals[1]);
+	var card = new this.Card(vals[0], vals[1]);
+	card.id = id;
+	return card;
 }
 	
 //Utility Functions
@@ -108,7 +110,7 @@ to_map = function(array, lambda){
 
 ////////////////////
 		
-var token = "9a63ea757e69206c7b3183777ad154b68cea92662e14ac8390e6c37228e7a10b" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "99676baaa139638ef6a99ab2177e2cd87e995b7fc021466ab5cf6da3b79e166a" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -203,12 +205,6 @@ pic = function(card){
 	return "https://s3.amazonaws.com/trellotaire-cards/"+val+"+of+"+card.suit+"s.png";
 }
 
-
-
-cards.cardFromString = function(s){
-	
-}
-
 var _post_card = function(new_card, name, idList, pic, callback){
 	request.post(url.build('cards',{name: name, idList: idList}), function(error, response, body){
 		if (error) { console.log(error); }
@@ -229,7 +225,21 @@ var post_card_faceup = function(new_card, idList, callback){
 }
 
 var post_card_facedown = function(new_card, idList, callback){
-	_post_card(new_card, '?', idList, pic('back'), callback);
+	_post_card(new_card, '?', idList, pic('back'), function(posted_card){
+		request.post(url.build('cards/'+posted_card.id+'/actions/comments', {text: posted_card.toString()}), function(error, response, body){
+			if (error) { console.log(error); }
+			callback(posted_card);
+		});
+	});
+}
+
+var flip_card = function(id){
+	request(url.build('cards/'+id+'/actions'), function(error, response, body){
+		if (error) { console.log(error); }
+		var comments = JSON.parse(body);
+		var comment = comments[0].data.text;
+		cards.from_s(comment, id).flip();
+	});
 }
 
 var load_state = function(callback){
@@ -440,9 +450,9 @@ var play = function(){
 	
 	var flip_unlocked_card = function(listId){
 		request(url.build('lists/'+listId+'/cards', {fields: 'name'}), function(error, response,body){
-			var cards = JSON.parse(body);
-			bottom_card = cardsp[cards.length-1];
-			if (bottom_card.name == '?'){
+			var list = JSON.parse(body);
+			bottom_card = list[list.length-1];
+			if (bottom_card && bottom_card.name == '?'){
 				flip_card(bottom_card.id);
 			}
 		});
@@ -588,8 +598,9 @@ request(url.build('members/'+vars.robot+'/notifications'), function(error, respo
 load_state(function(new_state){
 	state = new_state;
 	var x = cards.from_s("club:7")
-	post_card_faceup(x, state.home_row_id, function(card){
+	post_card_facedown(x, state.home_row_id, function(card){
 		state.discard_id = card.id;
+		flip_card(card.id);
 		play();
 	});
 });
@@ -600,8 +611,8 @@ clear_board(function(){
 		play();
 	});
 });
-
 */
+
 
 
 
