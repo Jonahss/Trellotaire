@@ -474,25 +474,31 @@ var play = function(){
 	};
 	
 	var moved_card_between_piles = function(action){
-		if_legal(action, function(){
-			//cascading move
-			
-			//fromList, fromPos, toList
-			request(url.build('lists/'+action.fromList+'/cards'), function(error, response,body){
+	
+		//fromList, fromPos, toList
+		var cascading_move = function(fromList, toList, fromPos, callback){
+			request(url.build('lists/'+fromList+'/cards'), function(error, response,body){
 				var cards = JSON.parse(body)
 				cards.forEach(function(card){
-					if (card.pos > action.fromPos){
-						request.put(url.build('cards/'+card.id, {idList: action.toList, pos: 'bottom'}), function(error, response, body){
+					if (card.pos > fromPos){
+						request.put(url.build('cards/'+card.id, {idList: toList, pos: 'bottom'}), function(error, response, body){
 							if (error){ console.log(error); }
+							//recurse
+							cascading_move(fromList, toList, card.pos, callback)
 						});
-						//recurse
 						return;
 					}
+					callback();
 				});
 			});
-			
-			//flip unlocked cards
-			flip_unlocked_card(action.fromList);
+		};
+	
+		if_legal(action, function(){
+			//cascading move
+			cascading_move(action.fromList, action.toList, action.fromPos, function(){
+				//flip unlocked cards
+				flip_unlocked_card(action.fromList);
+			});
 		});
 	};
 
