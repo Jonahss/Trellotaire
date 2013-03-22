@@ -110,7 +110,7 @@ to_map = function(array, lambda){
 
 ////////////////////
 		
-var token = "99676baaa139638ef6a99ab2177e2cd87e995b7fc021466ab5cf6da3b79e166a" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "6224df717aad369405a788313dfa01627780d0530bdae2c2402cff7843e2f707" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -157,6 +157,7 @@ var State = function(){ return {
 var state = new State();
 
 var Action = function(action_group){
+debug(action_group)
 	var ret = new Object();
 	var movement_action;
 	for(var action in action_group){
@@ -237,6 +238,7 @@ var flip_card = function(id){
 	request(url.build('cards/'+id+'/actions'), function(error, response, body){
 		if (error) { console.log(error); }
 		var comments = JSON.parse(body);
+		if (comments.length == 0) { console.log("cannot flip card, it's not facedown") }
 		var comment = comments[0].data.text;
 		cards.from_s(comment, id).flip();
 	});
@@ -473,7 +475,22 @@ var play = function(){
 	
 	var moved_card_between_piles = function(action){
 		if_legal(action, function(){
-			//waterfall move
+			//cascading move
+			
+			//fromList, fromPos, toList
+			request(url.build('lists/'+action.fromList+'/cards'), function(error, response,body){
+				var cards = JSON.parse(body)
+				cards.forEach(function(card){
+					if (card.pos > action.fromPos){
+						request.put(url.build('cards/'+card.id, {idList: action.toList, pos: 'bottom'}), function(error, response, body){
+							if (error){ console.log(error); }
+						});
+						//recurse
+						return;
+					}
+				});
+			});
+			
 			//flip unlocked cards
 			flip_unlocked_card(action.fromList);
 		});
@@ -604,14 +621,14 @@ load_state(function(new_state){
 		play();
 	});
 });
-
+//*/
 /*
 clear_board(function(){
 	deal(function(){
 		play();
 	});
 });
-*/
+//*/
 
 
 
