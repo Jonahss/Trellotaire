@@ -79,7 +79,6 @@ dots = function(i){
 
 group = function(array, prop_path){
 	var ret = {};
-	console.log(array.length);
 	for(var i = 0; i < array.length; i++){
 		var key = deep_prop(array[i], prop_path);
 		if (!ret[key]){
@@ -110,7 +109,7 @@ to_map = function(array, lambda){
 
 ////////////////////
 		
-var token = "6224df717aad369405a788313dfa01627780d0530bdae2c2402cff7843e2f707" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "20bc9249cc3ba89780d0ee55766346c8ebcd43501aa80f75d7930c355f9bdd68" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -157,7 +156,6 @@ var State = function(){ return {
 var state = new State();
 
 var Action = function(action_group){
-debug(action_group)
 	var ret = new Object();
 	var movement_action;
 	for(var action in action_group){
@@ -177,7 +175,7 @@ debug(action_group)
 	if (!movement_action){
 		ret.withinList = true;
 	}
-	debug('creating action')
+	
 	return ret;
 }
 
@@ -477,28 +475,45 @@ var play = function(){
 	
 		//fromList, fromPos, toList
 		var cascading_move = function(fromList, toList, fromPos, callback){
+			if (!fromPos) { console.log("ERROR: cascading_move error, 'fromPos' is undefined") };
 			request(url.build('lists/'+fromList+'/cards'), function(error, response,body){
 				var cards = JSON.parse(body)
-				cards.forEach(function(card){
+				cards.some(function(card){
 					if (card.pos > fromPos){
 						request.put(url.build('cards/'+card.id, {idList: toList, pos: 'bottom'}), function(error, response, body){
 							if (error){ console.log(error); }
 							//recurse
 							cascading_move(fromList, toList, card.pos, callback)
 						});
-						return;
+						return true;
 					}
-					callback();
 				});
+				callback();
 			});
 		};
-	
-		if_legal(action, function(){
+		
+		var handle_move = function(fromList, toList, fromPos){
 			//cascading move
-			cascading_move(action.fromList, action.toList, action.fromPos, function(){
+			cascading_move(fromList, toList, fromPos, function(){
 				//flip unlocked cards
 				flip_unlocked_card(action.fromList);
 			});
+		}
+	
+		if_legal(action, function(){
+			//sometimes the position value doesn't change when a card is moved, but we want to know what it is
+			if (!action.fromPos){
+				console.log("no fromPos, had to get current pos")
+				request(url.build('cards/'+action.cardId+'/pos'), function(error, response, body){
+					if (error) {console.log(error)};
+					var pos = JSON.parse(body)._value;
+					handle_move(action.fromList, action.toList, pos)
+				});
+			} 
+			else {
+			
+				handle_move(action.fromList, action.toList, action.fromPos)
+			}
 		});
 	};
 
@@ -508,7 +523,6 @@ var play = function(){
 			var actions = JSON.parse(body);
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
-				var actions = JSON.parse(body);
 				actions = filter_robot_actions(actions);
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
@@ -538,7 +552,7 @@ var play = function(){
 	
 	var categorize_action = function(action){
 		console.log('-------------');
-		debug(action);
+		
 		//signature of moving one card within a list
 		if (action.withinList){
 			console.log('moved one card within list');
