@@ -107,9 +107,18 @@ to_map = function(array, lambda){
 	return map;
 }
 
+any = function(array, lambda){
+	for (var i = 0; i < array.length; i++){
+		if (lambda(array[i])){
+			return array[i]
+		}
+	}
+	return null;
+}
+
 ////////////////////
 		
-var token = "20bc9249cc3ba89780d0ee55766346c8ebcd43501aa80f75d7930c355f9bdd68" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "fdc4e083f12dbd51ca6961a5aaac58f38aa58f379a6098a0b8b6a951fdec58fe" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -175,6 +184,12 @@ var Action = function(action_group){
 	if (!movement_action){
 		ret.withinList = true;
 	}
+	
+	ret.reverse = function(){
+		request.put(url.build('cards/'+this.cardId, {idList: this.fromList, pos: this.fromPos}), function(error, response, body){
+			if (error){ console.log(error); }
+		});
+	};
 	
 	return ret;
 }
@@ -516,6 +531,31 @@ var play = function(){
 			}
 		});
 	};
+	
+	var retire_card = function(action){
+		console.log("attempt to retire card")
+		request(url.build('lists/'+state.home_row_id+'/cards'), function(error, response, body){
+			if (error) { console.log(error); }
+			var list = JSON.parse(body);
+			var cardInQuestion = cards.from_s(
+				any(list, function(c){ return c.id == action.cardId; }).name
+			)
+			var homeInQuestion = any(list, function(c){
+				var suit = cardInQuestion.suit;
+				suit = suit[0].toUpperCase() + suit.slice(1) + 's';
+				return c.name == suit;
+			});
+			console.log("did you mean to retire to "+homeInQuestion.name+"?");
+			
+			if (homeInQuestion.badges.attachments == cardInQuestion.getNumericalValue()){
+				console.log("legal retirement");
+				//delete card in question, add picture to homeInQuestion
+			} else {
+				console.log("illegal retirement");
+				action.reverse();
+			}
+		});
+	}
 
 	var monitor_actions = function(){
 		request(url.build('boards/'+board+'/actions', {filter: 'updateCard', fields: 'data,type', since: 'lastView'}), function(error, response, body){
@@ -570,6 +610,11 @@ var play = function(){
 			if (action.cardId == state.discard_id){
 				used_drawn_card(action);
 			}
+			//signature of moving a card to the home row
+			if (action.toList == state.home_row_id){
+				retire_card(action);
+			}
+			
 			//signature of moving a card from one pile to another
 			else {
 				moved_card_between_piles(action);
@@ -605,15 +650,11 @@ return true;
 			var last_index = cards.length-1;
 			if (cards[last_index].id == action.cardId && legal_order(cards[last_index-1], cards[last_index])){
 				debug("it's legal");
-				//TODO move entire stack beneath moved card
-				//waterfall/recursive function. call a move, detect the move with this function
 				callback();
 			} else {
 				debug("not legal");
 				//move the card to previous list and previous position
-				request.put(url.build('cards/'+action.cardId, {idList: action.fromList, pos: action.fromPos}), function(error, response, body){
-					if (error){ console.log(error); }
-				});
+				action.reverse();
 			}
 		});
 	}
@@ -634,12 +675,10 @@ request(url.build('members/'+vars.robot+'/notifications'), function(error, respo
 
 load_state(function(new_state){
 	state = new_state;
-	var x = cards.from_s("club:7")
-	post_card_facedown(x, state.home_row_id, function(card){
-		state.discard_id = card.id;
-		flip_card(card.id);
-		play();
+	request(url.build('lists/'+state.home_row_id+'/cards'), function(error, response, body){
+		debug(body);
 	});
+	play();
 });
 //*/
 /*
