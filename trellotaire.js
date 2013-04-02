@@ -118,7 +118,7 @@ any = function(array, lambda){
 
 ////////////////////
 		
-var token = "fdc4e083f12dbd51ca6961a5aaac58f38aa58f379a6098a0b8b6a951fdec58fe" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "89291450bb1a66dc3a8114109c72dc47b817e491c7852cb43c5912bc154124b3" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -611,13 +611,17 @@ var play = function(){
 				used_drawn_card(action);
 			}
 			//signature of moving a card to the home row
-			if (action.toList == state.home_row_id){
+			else if (action.toList == state.home_row_id){
 				retire_card(action);
 			}
 			
 			//signature of moving a card from one pile to another
-			else {
+			else if (action.fromList != state.home_row_id){
 				moved_card_between_piles(action);
+			}
+			
+			else {
+				action.reverse();
 			}
 		}
 	};
