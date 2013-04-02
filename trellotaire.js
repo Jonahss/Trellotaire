@@ -609,20 +609,21 @@ var play = function(){
 			//signature of moving a drawn card to a pile
 			if (action.cardId == state.discard_id){
 				used_drawn_card(action);
+				return;
 			}
 			//signature of moving a card to the home row
-			else if (action.toList == state.home_row_id){
+			if (action.toList == state.home_row_id){
 				retire_card(action);
+				return;
 			}
 			
 			//signature of moving a card from one pile to another
-			else if (action.fromList != state.home_row_id){
+			if (action.fromList != state.home_row_id){
 				moved_card_between_piles(action);
+				return;
 			}
 			
-			else {
-				action.reverse();
-			}
+			action.reverse();
 		}
 	};
 	
