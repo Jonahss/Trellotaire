@@ -227,7 +227,9 @@ var _post_card = function(new_card, name, idList, pic, callback){
 			
 		request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic, name: "image"}), function(error, response, body){
 			if (error) { console.log(error) };
-			callback(new_card);
+			if (callback){
+				callback(new_card);
+			}
 		});
 	});
 }
@@ -537,19 +539,27 @@ var play = function(){
 		request(url.build('lists/'+state.home_row_id+'/cards'), function(error, response, body){
 			if (error) { console.log(error); }
 			var list = JSON.parse(body);
-			var cardInQuestion = cards.from_s(
-				any(list, function(c){ return c.id == action.cardId; }).name
-			)
+			
+			var jsonCard = any(list, function(c){ return c.id == action.cardId; });
+			var cardInQuestion = cards.from_s(jsonCard.name, jsonCard.id);
 			var homeInQuestion = any(list, function(c){
 				var suit = cardInQuestion.suit;
 				suit = suit[0].toUpperCase() + suit.slice(1) + 's';
 				return c.name == suit;
 			});
+			
+			
 			console.log("did you mean to retire to "+homeInQuestion.name+"?");
 			
 			if (homeInQuestion.badges.attachments == cardInQuestion.getNumericalValue()){
 				console.log("legal retirement");
 				//delete card in question, add picture to homeInQuestion
+				request.post(url.build('cards/'+homeInQuestion.id+'/attachments', {url: pic(cardInQuestion), name: cardInQuestion.toString()}), function(error, response, body){
+					if (error) { console.log(error) };
+				});
+				request.del(url.build('cards/'+cardInQuestion.id), function(error){
+					if (error) {console.log(error)};
+				});
 			} else {
 				console.log("illegal retirement");
 				action.reverse();
@@ -680,9 +690,7 @@ request(url.build('members/'+vars.robot+'/notifications'), function(error, respo
 
 load_state(function(new_state){
 	state = new_state;
-	request(url.build('lists/'+state.home_row_id+'/cards'), function(error, response, body){
-		debug(body);
-	});
+	
 	play();
 });
 //*/
