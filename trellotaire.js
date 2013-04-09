@@ -10,6 +10,7 @@ var request = require('request'),
 
 cards.useArc4 = true;
 var deck = new cards.Deck('poker');
+deck.suits = ['spade', 'heart', 'club', 'diamond'];
 deck.shuffleRemaining();
 cards.Card.prototype.flip = function(){
 	if (!this.id) console.log('trying to flip card with no id');
@@ -118,7 +119,7 @@ any = function(array, lambda){
 
 ////////////////////
 		
-var token = "ce8e15231ee4ae138973b2a5df3f42c748b732bbf2ede481ea539cb1a444a4ac" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "0dcd16333c92d228f15701d32f7381b88e40ad232d343728e79db3f4ab10fae8" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -424,9 +425,9 @@ deal = function(callback) {
 		console.log('finishing:');
 		populate_piles(function(){
 			console.log('flipping cards');
-			state.piles.forEach(function(pile){
-				pile[pile.length-1].flip();
-			});
+//TEST			//state.piles.forEach(function(pile){
+			//	pile[pile.length-1].flip();
+			//});
 		});
 		
 		callback();
@@ -434,6 +435,25 @@ deal = function(callback) {
 }
 
 var play = function(){
+
+	var check_score = function(home_row){
+		var score = 0.0;
+
+		deck.suits.forEach(function(suit){
+			var home = any(home_row, function(c){ return c.name.toLowerCase() == suit+'s' });
+			score += home.badges.attachments-1; //they start with a blank image attachment
+		});
+		return score;
+	};
+	
+	var march_of_the_kings = function(){
+		state.pile_ids.forEach(function(pile_id){
+			for(var i = 0; i < 12; i++){ (function(i){
+				var king = new cards.Card(deck.suits[i % 4, 'K'])
+				post_card_faceup(king, pile_id);
+			});};
+		});
+	};
 
 	var to_discard_pile = function(discard_card, callback){
 		post_card_faceup(discard_card, state.home_row_id, function(card){
@@ -541,8 +561,8 @@ var play = function(){
 	var retired_card = function(action){
 		console.log("user is attempting to retire card")
 		
-		var if_from_bottom = function(action, closure){
-			request(url.build(), function(error, response, body){
+		var if_from_bottom = function(action, callback){
+			request(url.build('lists/'+action.fromList+'/cards'), function(error, response, body){
 				if (error) { console.log(error); }
 				var cards = JSON.parse(body);
 				if (action.cardId > cards[cards.length-1].id){
@@ -557,11 +577,11 @@ var play = function(){
 		
 		request(url.build('lists/'+state.home_row_id+'/cards'), function(error, response, body){
 			if (error) { console.log(error); }
-			var list = JSON.parse(body);
+			var home_row = JSON.parse(body);
 			
-			var jsonCard = any(list, function(c){ return c.id == action.cardId; });
+			var jsonCard = any(home_row, function(c){ return c.id == action.cardId; });
 			var cardInQuestion = cards.from_s(jsonCard.name, jsonCard.id);
-			var homeInQuestion = any(list, function(c){
+			var homeInQuestion = any(home_row, function(c){
 				var suit = cardInQuestion.suit;
 				suit = suit[0].toUpperCase() + suit.slice(1) + 's';
 				return c.name == suit;
@@ -579,6 +599,15 @@ var play = function(){
 				request.del(url.build('cards/'+card.id), function(error){
 					if (error) {console.log(error)};
 				});
+				var score = check_score(home_row) + 1; //add one for the card just retired now
+//TEST			console.log('score: ' + score);
+				var king = new cards.Card('spade', 3);
+				console.log('game completion at %'+ (score/(king.getNumericalValue()*4)*100));
+				console.log(score + ' ' + king.getNumericalValue() * 4)
+				console.log(score == king.getNumericalValue() * 4)
+				if (score == king.getNumericalValue() * 4){
+					march_of_the_kings();
+				}
 			}
 			
 			//retired cards must come from the bottom of a pile if coming from a pile other than the home row.
@@ -586,9 +615,9 @@ var play = function(){
 				if (action.withinList){
 					perform_retirement(homeInQuestion, cardInQuestion);
 				} else {
-					if_from_bottom(action, function(){
+//TEST					if_from_bottom(action, function(){
 						perform_retirement(homeInQuestion, cardInQuestion);
-					});
+//					});
 				}
 			} else {
 				console.log("illegal retirement");
@@ -727,16 +756,20 @@ request(url.build('members/'+vars.robot+'/notifications'), function(error, respo
 	debug(body);
 });
 
-
+/*
 load_state(function(new_state){
 	state = new_state;
-	post_card_faceup(new cards.Card("spade","2"), state.home_row_id, function(c){state.discard_id = c.id});
 	play();
 });
 //*/
-/*
+
 clear_board(function(){
 	deal(function(){
+		['A',2,3].forEach(function(v){
+			deck.suits.forEach(function(s){
+				post_card_faceup(new cards.Card(s, v), state.pile_ids[0]);
+			});
+		});
 		play();
 	});
 });
