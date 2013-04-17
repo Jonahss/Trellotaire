@@ -119,7 +119,7 @@ any = function(array, lambda){
 
 ////////////////////
 		
-var token = "0dcd16333c92d228f15701d32f7381b88e40ad232d343728e79db3f4ab10fae8" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "41549423082f1d226994c81ccb40aa498f56f12af05d94c2ffe349efa02b1dd4" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -447,11 +447,12 @@ var play = function(){
 	};
 	
 	var march_of_the_kings = function(){
+		console.log('march of the kings');
 		state.pile_ids.forEach(function(pile_id){
-			for(var i = 0; i < 12; i++){ (function(i){
-				var king = new cards.Card(deck.suits[i % 4, 'K'])
+			for(var i = 0; i < 12; i++){
+				var king = new cards.Card(deck.suits[i % 4], 'K');
 				post_card_faceup(king, pile_id);
-			});};
+			};
 		});
 	};
 
