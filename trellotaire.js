@@ -119,7 +119,7 @@ any = function(array, lambda){
 
 ////////////////////
 		
-var token = "41549423082f1d226994c81ccb40aa498f56f12af05d94c2ffe349efa02b1dd4" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "df7fc5f141196fb23977162c9a609df0eb9653bdc3c08509d8821b21c951f7c1" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -425,9 +425,9 @@ deal = function(callback) {
 		console.log('finishing:');
 		populate_piles(function(){
 			console.log('flipping cards');
-//TEST			//state.piles.forEach(function(pile){
-			//	pile[pile.length-1].flip();
-			//});
+			state.piles.forEach(function(pile){
+				pile[pile.length-1].flip();
+			});
 		});
 		
 		callback();
@@ -601,8 +601,7 @@ var play = function(){
 					if (error) {console.log(error)};
 				});
 				var score = check_score(home_row) + 1; //add one for the card just retired now
-//TEST			console.log('score: ' + score);
-				var king = new cards.Card('spade', 3);
+				var king = new cards.Card('spade', 'K');
 				console.log('game completion at %'+ (score/(king.getNumericalValue()*4)*100));
 				console.log(score + ' ' + king.getNumericalValue() * 4)
 				console.log(score == king.getNumericalValue() * 4)
@@ -616,9 +615,10 @@ var play = function(){
 				if (action.withinList){
 					perform_retirement(homeInQuestion, cardInQuestion);
 				} else {
-//TEST					if_from_bottom(action, function(){
+					if_from_bottom(action, function(){
 						perform_retirement(homeInQuestion, cardInQuestion);
-//					});
+						flip_unlocked_card(action.fromList);
+					});
 				}
 			} else {
 				console.log("illegal retirement");
@@ -711,8 +711,7 @@ var play = function(){
 	var if_legal = function(action, callback){
 
 		var legal_order = function(first, second){
-//TEST
-return true;	
+	
 			second = cards.from_s(second.name);
 			if (!first) {
 				if (second.value == 'K')
@@ -766,11 +765,11 @@ load_state(function(new_state){
 
 clear_board(function(){
 	deal(function(){
-		['A',2,3].forEach(function(v){
-			deck.suits.forEach(function(s){
-				post_card_faceup(new cards.Card(s, v), state.pile_ids[0]);
-			});
-		});
+		//['A',2,3].forEach(function(v){
+		//	deck.suits.forEach(function(s){
+		//		post_card_faceup(new cards.Card(s, v), state.pile_ids[0]);
+		//	});
+		//});
 		play();
 	});
 });
