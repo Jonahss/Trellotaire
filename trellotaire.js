@@ -91,7 +91,8 @@ group = function(array, prop_path){
 };
 
 deep_prop = function(obj, prop_path){
-	if (!prop_path || prop_path == '') { return obj};
+	if (!prop_path || prop_path == '') { return obj; };
+	if (!obj) { return null; };
 	props = prop_path.split('.');
 	ret = obj;
 	for(var i = 0; i < props.length; i++){
@@ -119,7 +120,7 @@ any = function(array, lambda){
 
 ////////////////////
 		
-var token = "df7fc5f141196fb23977162c9a609df0eb9653bdc3c08509d8821b21c951f7c1" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
+var token = "3269ad42f2c689af0148ad85d73722b3d86640a5dc74b25b717f9ccf7c3c3ce8" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
 var testing = false;
 
@@ -189,11 +190,21 @@ var Action = function(action_group){
 	}
 	
 	ret.reverse = function(){
-		var params = {pos: this.fromPos}
-		if (this.fromList){ params.idList = this.fromList }
-		request.put(url.build('cards/'+this.cardId, params), function(error, response, body){
-			if (error){ console.log(error); }
-		});
+		if (this.fromPos){
+			var params = { pos: this.fromPos }
+			if (this.fromList){ params.idList = this.fromList }
+			request.put(url.build('cards/'+this.cardId, params), function(error, response, body){
+				if (error){ console.log(error); }
+			});
+		}
+		else {
+			var action = this;
+			request(url.build('cards/'+this.cardId+'/pos'), function(error, response, body){
+				if (error) { console.log(error) };
+				action.fromPos = JSON.parse(body)._value;
+				action.reverse();
+			})
+		}
 	};
 	
 	return ret;
@@ -202,7 +213,7 @@ var Action = function(action_group){
 pic = function(card){
 	if (card === 'back')
 		return "https://s3.amazonaws.com/trellotaire-cards/back.png";
-	if (card === 'blue')
+	if (card === 'Draw')
 		return "https://s3.amazonaws.com/trellotaire-cards/blue.png";
 	var val = 'default';
 	switch(card.value){
@@ -241,8 +252,9 @@ var _post_card = function(new_card, name, idList, pic, callback){
 
 var post_card_faceup = function(new_card, idList, callback){
 	var name = new_card.toString();
+	var pic_url = pic(new_card);
 	if (typeof new_card == 'string') { new_card = new Object(); };
-	_post_card(new_card, name, idList, pic(new_card), callback);
+	_post_card(new_card, name, idList, pic_url, callback);
 }
 
 var post_card_facedown = function(new_card, idList, callback){
@@ -500,16 +512,20 @@ var play = function(){
 		});
 	};
 	
+	var replenish_discard_pile = function(action){
+		deck.held.push(deck.discarded.pop());
+		var previously_discarded = deck.discarded[deck.discarded.length-1];
+		if (previously_discarded){
+			deck.held.push(previously_discarded);
+			to_discard_pile(previously_discarded);
+		} else {
+			to_discard_pile('Discard')
+		}
+	};
+	
 	var used_drawn_card = function(action){
 		if_legal(action, function(){
-			deck.held.push(deck.discarded.pop());
-			var previously_discarded = deck.discarded[deck.discarded.length-1];
-			if (previously_discarded){
-				deck.held.push(previously_discarded);
-				to_discard_pile(previously_discarded);
-			} else {
-				to_discard_pile('Discard')
-			}
+			replenish_discard_pile(action);
 		});
 	};
 	
@@ -566,7 +582,7 @@ var play = function(){
 			request(url.build('lists/'+action.fromList+'/cards'), function(error, response, body){
 				if (error) { console.log(error); }
 				var cards = JSON.parse(body);
-				if (action.cardId > cards[cards.length-1].id){
+				if (!cards[cards.length-1] || action.fromPos > cards[cards.length-1].pos){
 					callback();
 				} else {
 					console.log("illegal retirement");
@@ -677,6 +693,7 @@ var play = function(){
 			//signature of retiring top card of discard pile
 			if (action.cardId == state.discard_id){
 				retired_card(action);
+				replenish_discard_pile(action);
 				return;
 			}
 			
@@ -713,12 +730,19 @@ var play = function(){
 		var legal_order = function(first, second){
 	
 			second = cards.from_s(second.name);
+			if (!second) { //must be something we can't turn into a card, like a facedown card
+				return false;
+			}
 			if (!first) {
 				if (second.value == 'K')
 					return true;
 				return false;
 			}
 			first = cards.from_s(first.name);
+			if (!first) { //must be something we can't turn into a card, like a facedown card
+				return false;
+			}
+			
 			if (first.getColor() != second.getColor() && first.getNumericalValue()-1 == second.getNumericalValue()){
 				return true;
 			}
