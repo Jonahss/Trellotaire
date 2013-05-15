@@ -666,15 +666,13 @@ var play = function(){
 	}
 
 	var filter_robot_actions = function(actions){
-		var deleted = 0;
-		for(var ac in actions){
-			if (actions[ac].memberCreator.id == vars.robotid){
-				delete actions[ac];
-				deleted = deleted + 1;
+		var filtered_actions = new Array();
+		for(var i in actions){
+			if (actions[i].memberCreator.id != vars.robotid){
+				filtered_actions.push(actions[i]);
 			}
 		}
-		actions.length = actions.length - deleted;
-		return actions;
+		return filtered_actions;
 	}
 	
 	var categorize_action = function(action){
