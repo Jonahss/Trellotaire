@@ -650,7 +650,7 @@ var play = function(){
 			var actions = JSON.parse(body);
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
-				actions = filter_robot_actions(actions);
+				actions = actions.filter(is_player_action)
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
 					var action = new Action(actions[ac]);
@@ -665,15 +665,9 @@ var play = function(){
 		});
 	}
 
-	var filter_robot_actions = function(actions){
-		var filtered_actions = new Array();
-		for(var i in actions){
-			if (actions[i].memberCreator.id != vars.robotid){
-				filtered_actions.push(actions[i]);
-			}
-		}
-		return filtered_actions;
-	}
+	var is_player_action = function(action){
+		return action.memberCreator.id != vars.robotid)
+	};
 	
 	var categorize_action = function(action){
 		console.log('-------------');
