@@ -1,5 +1,12 @@
 {
 	"robotid"	: "50fdfb596eb8487364001858",
 	"robot"		: "daveshades",
-	"key"		: "7c4a64bfd8a154965bd35714224a344e"
+	"key"		: "7c4a64bfd8a154965bd35714224a344e",
+	"secret"    : "c2ca7d01da8dbe9d04ef85ff37666250ef2ca17de68ee279444dd18335c307f2",
+	"OAUTH"     : {
+					"requestURL" : "https://trello.com/1/OAuthGetRequestToken",
+				    "accessURL" : "https://trello.com/1/OAuthGetAccessToken",
+					"authorizeURL" : "https://trello.com/1/OAuthAuthorizeToken"
+				  },
+	"appName" : "Trellotaire"
 }
