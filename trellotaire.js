@@ -4,6 +4,7 @@
 var request = require('request'),
 	url 	= require('url'),
 	und		= require('underscore'),
+	oauth   = require('oauth'),
 	pretty	= require('prettyjson'),
 	vars	= require('./vars.json'),
 	cards	= require('./node-cards');
@@ -129,10 +130,7 @@ url.base = {
 	slashes: true,
 	host: 'api.trello.com',
 	hostname: 'api.trello.com',
-	base_query: {
-			key: vars.key,
-			token: token
-		   },
+	base_query: {},
 	base_pathname: '/1/'
 };
 
@@ -145,6 +143,17 @@ url.build = function(path, query){
 		url.query = url.base_query;
 	};
 	return this.format(url);
+};
+
+var oauth = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", null, "HMAC-SHA1");
+var daveShades = {}
+daveShades.get = function(url, cb){
+console.log('inside wrapper');
+	//node-oauth and node-request have different parameter orderings, i want to be able to use them interchangeably
+    var callback = function(err, data, response){
+		cb(err, response, data);
+	}
+	oauth.get(url, vars.OAUTH.accessToken, vars.OAUTH.accessTokenSecret, callback);
 };
 
 var State = function(){ return {
@@ -765,20 +774,20 @@ var play = function(){
 	});
 }
 
-request(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
+daveShades.get(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
+	console.log("moo");
 	if (error)
 		console.log(error);
-		
-	debug(body);
+	console.log(body);
 });
-
+clear_board();
 /*
 load_state(function(new_state){
 	state = new_state;
 	play();
 });
 //*/
-
+/*
 clear_board(function(){
 	deal(function(){
 		//['A',2,3].forEach(function(v){
