@@ -30,8 +30,8 @@ server.on('request', function(request, response){
 */
 });
 
-server.listen('8080');
-console.log('server running');
+server.listen('8081');
+console.log('server running?');
 
 
 /************************************/
@@ -60,19 +60,13 @@ var login = function(req, res){
 };
 
 var cb = function(req, res){
-  var query = url.parse(req.url, true).query
 
-  var token = query.oauth_token
-  var tokenSecret = oauth_secrets[token]
-  var verifier = query.oauth_verifier
+  var accessToken = vars.OAUTH.accessToken
+  var accessTokenSecret = vars.OAUTH.accessTokenSecret
 
-  oauth.getOAuthAccessToken(token, tokenSecret, verifier, function(error, accessToken, accessTokenSecret, results){
-  console.log("accessToken", accessToken);
-  console.log("accessTokenSecret", accessTokenSecret);
-  //in a real app, the accessToken and accessTokenSecret should be stored
-     oauth.getProtectedResource("https://api.trello.com/1/members/me", "GET", accessToken, accessTokenSecret, function(error, data, response){
+     oauth.get("https://api.trello.com/1/members/me", accessToken, accessTokenSecret, function(error, data, response){
        //respond with data to show that we now have access to your data
-       res.end(data)
+	   res.end(data)
     });
-  });
+
 };

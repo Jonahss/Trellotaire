@@ -666,7 +666,7 @@ var play = function(){
 	}
 
 	var is_player_action = function(action){
-		return action.memberCreator.id != vars.robotid)
+		return action.memberCreator.id != vars.robotid
 	};
 	
 	var categorize_action = function(action){
