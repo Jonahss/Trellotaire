@@ -15,12 +15,8 @@ deck.suits = ['spade', 'heart', 'club', 'diamond'];
 deck.shuffleRemaining();
 cards.Card.prototype.flip = function(){
 	if (!this.id) console.log('trying to flip card with no id');
-	request.post(url.build('cards/'+this.id+'/attachments', {url: pic(this), name: this.toString()}), function(error, response, body){
-		if (error) { console.log(error) };
-	});
-	request.put(url.build('cards/'+this.id+'/name', {value: this.toString()}), function(error){
-		if (error) { console.log(error) };
-	});
+	daveShades.post(url.build('cards/'+this.id+'/attachments', {url: pic(this), name: this.toString()}), function(error, response, body){});
+	daveShades.put(url.build('cards/'+this.id+'/name', {value: this.toString()}), function(error){});
 };
 cards.Card.prototype.toString = function(){
 	return this.suit + ':' + this.value;
@@ -146,15 +142,30 @@ url.build = function(path, query){
 };
 
 var oauth = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", null, "HMAC-SHA1");
+//daveShades is the name of our robotic user
 var daveShades = {}
-daveShades.get = function(url, cb){
-console.log('inside wrapper');
+daveShades._performSercureRequest = function(method, url, cb){
 	//node-oauth and node-request have different parameter orderings, i want to be able to use them interchangeably
     var callback = function(err, data, response){
+		//convenient place to put this default error checking
+		if (err) { console.log(err + "for url: " + url) }
 		cb(err, response, data);
 	}
-	oauth.get(url, vars.OAUTH.accessToken, vars.OAUTH.accessTokenSecret, callback);
+	oauth._performSecureRequest(vars.OAUTH.accessToken, vars.OAUTH.accessTokenSecret, method, url, null, "", null, callback);
 };
+daveShades.get = function(url, cb){
+	daveShades._performSercureRequest('GET', url, cb)
+};
+daveShades.put = function(url, cb){
+	daveShades._performSercureRequest('PUT', url, cb)
+};
+daveShades.post = function(url, cb){
+	daveShades._performSercureRequest('POST', url, cb)
+};
+daveShades.del = function(url, cb){
+	daveShades._performSercureRequest('DELETE', url, cb)
+};
+
 
 var State = function(){ return {
 	piles: (function(){
@@ -194,7 +205,6 @@ var Action = function(action_group){
 	}
 	
 	if (!movement_action){
-	debug(action_group[0]);
 		ret.withinList = true;
 	}
 	
@@ -202,13 +212,13 @@ var Action = function(action_group){
 		if (this.fromPos){
 			var params = { pos: this.fromPos }
 			if (this.fromList){ params.idList = this.fromList }
-			request.put(url.build('cards/'+this.cardId, params), function(error, response, body){
+			daveShades.put(url.build('cards/'+this.cardId, params), function(error, response, body){
 				if (error){ console.log(error); }
 			});
 		}
 		else {
 			var action = this;
-			request(url.build('cards/'+this.cardId+'/pos'), function(error, response, body){
+			daveShades.get(url.build('cards/'+this.cardId+'/pos'), function(error, response, body){
 				if (error) { console.log(error) };
 				action.fromPos = JSON.parse(body)._value;
 				action.reverse();
@@ -245,13 +255,11 @@ pic = function(card){
 }
 
 var _post_card = function(new_card, name, idList, pic, callback){
-	request.post(url.build('cards',{name: name, idList: idList}), function(error, response, body){
-		if (error) { console.log(error); }
+	daveShades.post(url.build('cards',{name: name, idList: idList}), function(error, response, body){
 		console.log('add ' + new_card.toString());
 		new_card.id = JSON.parse(body).id;
 			
-		request.post(url.build('cards/'+new_card.id+'/attachments', {url: pic, name: "image"}), function(error, response, body){
-			if (error) { console.log(error) };
+		daveShades.post(url.build('cards/'+new_card.id+'/attachments', {url: pic, name: "image"}), function(error, response, body){
 			if (callback){
 				callback(new_card);
 			}
@@ -268,16 +276,14 @@ var post_card_faceup = function(new_card, idList, callback){
 
 var post_card_facedown = function(new_card, idList, callback){
 	_post_card(new_card, '?', idList, pic('back'), function(posted_card){
-		request.post(url.build('cards/'+posted_card.id+'/actions/comments', {text: posted_card.toString()}), function(error, response, body){
-			if (error) { console.log(error); }
+		daveShades.post(url.build('cards/'+posted_card.id+'/actions/comments', {text: posted_card.toString()}), function(error, response, body){
 			callback(posted_card);
 		});
 	});
 }
 
 var flip_card = function(id){
-	request(url.build('cards/'+id+'/actions'), function(error, response, body){
-		if (error) { console.log(error); }
+	daveShades.get(url.build('cards/'+id+'/actions'), function(error, response, body){
 		var comments = JSON.parse(body);
 		if (comments.length == 0) { console.log("cannot flip card, it's not facedown") }
 		var comment = comments[0].data.text;
@@ -287,8 +293,7 @@ var flip_card = function(id){
 
 var load_state = function(callback){
 	var state = new State();
-	request(url.build('boards/'+board+'/lists', {cards: 'open', card_fields: 'name,idList'}), function(error, response, body){
-		if (error) { console.log(error) }
+	daveShades.get(url.build('boards/'+board+'/lists', {cards: 'open', card_fields: 'name,idList'}), function(error, response, body){
 		var lists = JSON.parse(body);
 		lists = to_map(lists, function(x){ return x.name });
 		
@@ -315,18 +320,13 @@ var load_state = function(callback){
 var clear_board = function(callback){
 
 	var close = function(id, callback){
-		request.put(url.build('lists/'+id+'/closed', {value: true}), function(error, response, body){
-			if (error)
-				console.log(error);
+		daveShades.put(url.build('lists/'+id+'/closed', {value: true}), function(error, response, body){
 			console.log('close a list: '+body);
 			callback();
 		});
 	};
 
-	request(url.build('boards/'+board+'/lists'), function(error, response, body){
-		if (error)
-			console.log(error);
-		
+	daveShades.get(url.build('boards/'+board+'/lists'), function(error, response, body){
 		var lists = JSON.parse(body);
 		debug(body);
 		var list_ids = lists.map(function(x){return x.id});
@@ -336,7 +336,7 @@ var clear_board = function(callback){
 		list_ids.forEach(function(id){
 			close(id, function(){
 				completed+=1;
-				if (completed >= list_ids.length)
+				if (callback && completed >= list_ids.length)
 					callback();
 			});
 		});
@@ -357,7 +357,7 @@ deal = function(callback) {
 	}
 
 	var add_list = function(callback){
-		request.post(url.build('lists', {name: dots(pile_i), idBoard: board, pos:'bottom'}), function(error, response, body){
+		daveShades.post(url.build('lists', {name: dots(pile_i), idBoard: board, pos:'bottom'}), function(error, response, body){
 			var id = JSON.parse(body).id;
 			state.pile_ids[pile_i-1] = id;
 			
@@ -369,8 +369,7 @@ deal = function(callback) {
 	}
 	
 	var add_home_row = function(callback){
-		request.post(url.build('lists', {name: 'Home Row', idBoard: board, pos:'top'}), function(error, response, body){
-			if (error) console.log('error');
+		daveShades.post(url.build('lists', {name: 'Home Row', idBoard: board, pos:'top'}), function(error, response, body){
 			state.home_row_id = JSON.parse(body).id;
 			
 			var funcs = [];
@@ -420,8 +419,7 @@ deal = function(callback) {
 	};
 	
 	var populate_piles = function(callback){
-		request(url.build('boards/'+board+'/lists', {cards: 'all'}), function(error, response, body){
-			if (error) console.log(error);
+		daveShades.get(url.build('boards/'+board+'/lists', {cards: 'all'}), function(error, response, body){
 			var lists = JSON.parse(body);
 			lists.forEach(function(list, i){
 				if (i === 0) return; //skip home row
@@ -480,11 +478,9 @@ var play = function(){
 	var to_discard_pile = function(discard_card, callback){
 		post_card_faceup(discard_card, state.home_row_id, function(card){
 			state.discard_id = card.id;
-			request.put(url.build('cards/'+card.id+'/pos', {value: 'top'}), function(error, response, body){
-				if (error) { console.log(error); }
+			daveShades.put(url.build('cards/'+card.id+'/pos', {value: 'top'}), function(error, response, body){
 				//Put the 'draw' card at the top of the home row
-				request.put(url.build('cards/'+state.draw_id+'/pos', {value: 'top'}), function(error, response, body){
-					if (error) {console.log(error)};
+				daveShades.put(url.build('cards/'+state.draw_id+'/pos', {value: 'top'}), function(error, response, body){
 					if (callback){ callback(); };
 				});
 			});
@@ -495,7 +491,7 @@ var play = function(){
 		console.log('draw a card');
 		
 		//Remove the current 'discard' card
-		request.del(url.build('cards/'+state.discard_id), function(error){
+		daveShades.del(url.build('cards/'+state.discard_id), function(error){
 			if (error) {console.log(error)};
 		});
 		
@@ -512,7 +508,7 @@ var play = function(){
 	};
 	
 	var flip_unlocked_card = function(listId){
-		request(url.build('lists/'+listId+'/cards', {fields: 'name'}), function(error, response,body){
+		daveShades.get(url.build('lists/'+listId+'/cards', {fields: 'name'}), function(error, response,body){
 			var list = JSON.parse(body);
 			bottom_card = list[list.length-1];
 			if (bottom_card && bottom_card.name == '?'){
@@ -543,12 +539,11 @@ var play = function(){
 		//fromList, fromPos, toList
 		var cascading_move = function(fromList, toList, fromPos, callback){
 			if (!fromPos) { console.log("ERROR: cascading_move error, 'fromPos' is undefined") };
-			request(url.build('lists/'+fromList+'/cards'), function(error, response,body){
+			daveShades.get(url.build('lists/'+fromList+'/cards'), function(error, response,body){
 				var cards = JSON.parse(body)
 				cards.some(function(card){
 					if (card.pos > fromPos){
-						request.put(url.build('cards/'+card.id, {idList: toList, pos: 'bottom'}), function(error, response, body){
-							if (error){ console.log(error); }
+						daveShades.put(url.build('cards/'+card.id, {idList: toList, pos: 'bottom'}), function(error, response, body){
 							//recurse
 							cascading_move(fromList, toList, card.pos, callback)
 						});
@@ -571,14 +566,12 @@ var play = function(){
 			//sometimes the position value doesn't change when a card is moved, but we want to know what it is
 			if (!action.fromPos){
 				console.log("no fromPos, had to get current pos")
-				request(url.build('cards/'+action.cardId+'/pos'), function(error, response, body){
-					if (error) {console.log(error)};
+				daveShades.get(url.build('cards/'+action.cardId+'/pos'), function(error, response, body){
 					var pos = JSON.parse(body)._value;
 					handle_move(action.fromList, action.toList, pos)
 				});
 			} 
 			else {
-			
 				handle_move(action.fromList, action.toList, action.fromPos)
 			}
 		});
@@ -588,8 +581,7 @@ var play = function(){
 		console.log("user is attempting to retire card")
 		
 		var if_from_bottom = function(action, callback){
-			request(url.build('lists/'+action.fromList+'/cards'), function(error, response, body){
-				if (error) { console.log(error); }
+			daveShades.get(url.build('lists/'+action.fromList+'/cards'), function(error, response, body){
 				var cards = JSON.parse(body);
 				if (!cards[cards.length-1] || action.fromPos > cards[cards.length-1].pos){
 					callback();
@@ -601,8 +593,7 @@ var play = function(){
 		}
 		
 		
-		request(url.build('lists/'+state.home_row_id+'/cards'), function(error, response, body){
-			if (error) { console.log(error); }
+		daveShades.get(url.build('lists/'+state.home_row_id+'/cards'), function(error, response, body){
 			var home_row = JSON.parse(body);
 			
 			var jsonCard = any(home_row, function(c){ return c.id == action.cardId; });
@@ -613,18 +604,14 @@ var play = function(){
 				return c.name == suit;
 			});
 			
-			
 			console.log("did you mean to retire to "+homeInQuestion.name+"?");
 			
 			var perform_retirement = function(homeCard, card){
 				console.log("legal retirement");
 				//delete card in question, add picture to homeCard
-				request.post(url.build('cards/'+homeCard.id+'/attachments', {url: pic(card), name: card.toString()}), function(error, response, body){
-					if (error) { console.log(error) };
-				});
-				request.del(url.build('cards/'+card.id), function(error){
-					if (error) {console.log(error)};
-				});
+				daveShades.post(url.build('cards/'+homeCard.id+'/attachments', {url: pic(card), name: card.toString()}), function(error, response, body){});
+				daveShades.del(url.build('cards/'+card.id), function(error){});
+				
 				var score = check_score(home_row) + 1; //add one for the card just retired now
 				var king = new cards.Card('spade', 'K');
 				console.log('game completion at %'+ (score/(king.getNumericalValue()*4)*100));
@@ -649,13 +636,11 @@ var play = function(){
 				console.log("illegal retirement");
 				action.reverse();
 			}
-			
 		});
 	}
 
 	var monitor_actions = function(){
-		request(url.build('boards/'+board+'/actions', {filter: 'updateCard', fields: 'data,type', since: 'lastView'}), function(error, response, body){
-			if (error) {console.log(error)};
+		daveShades.get(url.build('boards/'+board+'/actions', {filter: 'updateCard', fields: 'data,type', since: 'lastView'}), function(error, response, body){
 			var actions = JSON.parse(body);
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
@@ -666,8 +651,7 @@ var play = function(){
 					categorize_action(action);
 				};
 				
-				request.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
-					if (error) {console.log(error)};
+				daveShades.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
 					process.nextTick(monitor_actions);
 				});
 			}
@@ -754,7 +738,7 @@ var play = function(){
 		console.log('legal placement?');
 		
 		//legal if placed at the bottom of a list where the card above is one value higher and of the opposite color (take into account that the list may be empty)
-		request(url.build('lists/'+action.toList+'/cards'), function(error, response, body){
+		daveShades.get(url.build('lists/'+action.toList+'/cards'), function(error, response, body){
 			var cards = JSON.parse(body);
 			var last_index = cards.length-1;
 			if (cards[last_index].id == action.cardId && legal_order(cards[last_index-1], cards[last_index])){
@@ -768,33 +752,24 @@ var play = function(){
 		});
 	}
 	
-	request.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
-		if (error) {console.log(error)};
+	daveShades.post(url.build('boards/'+board+'/markAsViewed'), function(error, response, body){
 		monitor_actions();
 	});
 }
 
 daveShades.get(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
-	console.log("moo");
-	if (error)
-		console.log(error);
 	console.log(body);
 });
-clear_board();
+
 /*
 load_state(function(new_state){
 	state = new_state;
 	play();
 });
 //*/
-/*
+///*
 clear_board(function(){
 	deal(function(){
-		//['A',2,3].forEach(function(v){
-		//	deck.suits.forEach(function(s){
-		//		post_card_faceup(new cards.Card(s, v), state.pile_ids[0]);
-		//	});
-		//});
 		play();
 	});
 });

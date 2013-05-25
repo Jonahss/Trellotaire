@@ -30,8 +30,8 @@ server.on('request', function(request, response){
 */
 });
 
-server.listen('8081');
-console.log('server running?');
+server.listen('8080');
+console.log('server running');
 
 
 /************************************/
@@ -54,13 +54,25 @@ var login = function(req, res){
     oauth.getOAuthRequestToken(function(error, token, tokenSecret, results){
 		oauth_secrets[token] = tokenSecret;
 		console.log(oauth_secrets);
-		res.writeHead(302, { 'Location': vars.OAUTH.authorizeURL+"?oauth_token="+token+"&name="+vars.appName });
+		res.writeHead(302, { 'Location': vars.OAUTH.authorizeURL+"?oauth_token="+token+"&name="+vars.appName+"&scope=read,write,account" });
 		res.end();
 	});
 };
 
 var cb = function(req, res){
 
+  query = url.parse(req.url, true).query
+
+  var token = query.oauth_token
+  console.log("token: " + token)
+  console.log("tokenSecret: " + oauth_secrets[token])
+  console.log("verifier: " + query.oauth_verifier)
+
+  oauth.getOAuthAccessToken(token, oauth_secrets[token], query.oauth_verifier, function(error, accessToken, accessTokenSecret, results){
+	console.log("accessToken: " + accessToken);
+	console.log("accessTokenSecret: " + accessTokenSecret)
+  });
+  
   var accessToken = vars.OAUTH.accessToken
   var accessTokenSecret = vars.OAUTH.accessTokenSecret
 
