@@ -1,13 +1,9 @@
-//TODO change how flipping works to fit this change.
-//TODO change the home-row cards. hate that code anyways.
-
-var request = require('request'),
-	url 	= require('url'),
-	und		= require('underscore'),
-	oauth   = require('oauth'),
-	pretty	= require('prettyjson'),
-	vars	= require('./vars.json'),
-	cards	= require('./node-cards');
+var request  	 = require('request'),
+	url 		 = require('./trellotaire-url'),
+	daveShades   = require('./daveShades'),
+	pretty		 = require('prettyjson'),
+	vars		 = require('./vars.json'),
+	cards		 = require('./node-cards');
 
 cards.useArc4 = true;
 var deck = new cards.Deck('poker');
@@ -117,54 +113,9 @@ any = function(array, lambda){
 
 ////////////////////
 		
-var token = "3269ad42f2c689af0148ad85d73722b3d86640a5dc74b25b717f9ccf7c3c3ce8" //"de5e086ed809ae768099b68609ae965487af159faca92f6a95f1469cb5733dbc";
 var board = '50fdfc8929f73b0f2e00147f';
-var testing = false;
 
-url.base = {
-	protocol: 'https',
-	slashes: true,
-	host: 'api.trello.com',
-	hostname: 'api.trello.com',
-	base_query: {},
-	base_pathname: '/1/'
-};
 
-url.build = function(path, query){
-	var url = this.base;
-	url.pathname = url.base_pathname + path;
-	if(query){
-		url.query = und.extend({}, url.base_query, query);
-	} else {
-		url.query = url.base_query;
-	};
-	return this.format(url);
-};
-
-var oauth = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", null, "HMAC-SHA1");
-//daveShades is the name of our robotic user
-var daveShades = {}
-daveShades._performSercureRequest = function(method, url, cb){
-	//node-oauth and node-request have different parameter orderings, i want to be able to use them interchangeably
-    var callback = function(err, data, response){
-		//convenient place to put this default error checking
-		if (err) { console.log(err + "for url: " + url) }
-		cb(err, response, data);
-	}
-	oauth._performSecureRequest(vars.OAUTH.accessToken, vars.OAUTH.accessTokenSecret, method, url, null, "", null, callback);
-};
-daveShades.get = function(url, cb){
-	daveShades._performSercureRequest('GET', url, cb)
-};
-daveShades.put = function(url, cb){
-	daveShades._performSercureRequest('PUT', url, cb)
-};
-daveShades.post = function(url, cb){
-	daveShades._performSercureRequest('POST', url, cb)
-};
-daveShades.del = function(url, cb){
-	daveShades._performSercureRequest('DELETE', url, cb)
-};
 
 
 var State = function(){ return {
@@ -761,19 +712,32 @@ daveShades.get(url.build('members/'+vars.robot+'/notifications'), function(error
 	console.log(body);
 });
 
-/*
-load_state(function(new_state){
-	state = new_state;
-	play();
-});
-//*/
-///*
-clear_board(function(){
-	deal(function(){
+//This method simulates resuming a game, but doesn't actually resume one, since cards in the deck but not on the board are stored in memory.
+//It's the last bit of game state stored by the server.
+//This method is just for testing purposes, so one doesn't need to wait for a game to be dealt to test something.
+exports.resume = function (boardId){
+	if (boardId){
+		board = boardId;
+	}
+	
+	load_state(function(new_state){
+		state = new_state;
 		play();
 	});
-});
-//*/
+}
+
+exports.game = function(boardId){
+	if (boardId){
+		board = boardId
+	}
+	console.log("starting game", board);
+	
+	clear_board(function(){
+		deal(function(){
+			play();
+		});
+	});
+}
 
 
 
