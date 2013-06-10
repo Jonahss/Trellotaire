@@ -6,9 +6,7 @@ var request  	 = require('request'),
 	cards		 = require('./node-cards');
 
 cards.useArc4 = true;
-var deck = new cards.Deck('poker');
-deck.suits = ['spade', 'heart', 'club', 'diamond'];
-deck.shuffleRemaining();
+
 cards.Card.prototype.flip = function(){
 	if (!this.id) console.log('trying to flip card with no id');
 	daveShades.post(url.build('cards/'+this.id+'/attachments', {url: pic(this), name: this.toString()}), function(error, response, body){});
@@ -112,11 +110,6 @@ any = function(array, lambda){
 }
 
 ////////////////////
-		
-var board = '50fdfc8929f73b0f2e00147f';
-
-
-
 
 var State = function(){ return {
 	piles: (function(){
@@ -135,7 +128,6 @@ var State = function(){ return {
 	clubs_id: null,
 	diamonds_id: null
 }}
-var state = new State();
 
 var Action = function(action_group){
 	var ret = new Object();
@@ -180,7 +172,7 @@ var Action = function(action_group){
 	return ret;
 }
 
-pic = function(card){
+var pic = function(card){
 	if (card === 'back')
 		return "https://s3.amazonaws.com/trellotaire-cards/back.png";
 	if (card === 'Draw')
@@ -242,7 +234,7 @@ var flip_card = function(id){
 	});
 }
 
-var load_state = function(callback){
+var load_state = function(board, callback){
 	var state = new State();
 	daveShades.get(url.build('boards/'+board+'/lists', {cards: 'open', card_fields: 'name,idList'}), function(error, response, body){
 		var lists = JSON.parse(body);
@@ -268,7 +260,49 @@ var load_state = function(callback){
 	});
 }
 
-var clear_board = function(callback){
+//This method simulates resuming a game, but doesn't actually resume one, since cards in the deck but not on the board are stored in memory.
+//It's the last bit of game state stored by the server.
+//This method is just for testing purposes, so one doesn't need to wait for a game to be dealt to test something.
+exports.resume = function (boardId){
+	
+	var deck = new cards.Deck('poker');
+	deck.suits = ['spade', 'heart', 'club', 'diamond'];
+	deck.shuffleRemaining();
+	this.deck = deck;
+	
+	this.board = boardId;
+	
+	console.log("resuming game", this.board);
+	
+	load_state(function(new_state){
+		this.state = new_state;
+		this.play();
+	});
+}
+
+var Game = exports.Game = function(boardId){
+	
+	var deck = new cards.Deck('poker');
+	deck.suits = ['spade', 'heart', 'club', 'diamond'];
+	deck.shuffleRemaining();
+	this.deck = deck;
+	
+	this.state = new State();
+	
+	this.board = boardId
+	
+	console.log("starting game", this.board);
+	
+	var self = this;
+	
+	self.clear_board(function(){
+		self.deal(function(){
+			self.play();
+		});
+	});
+}
+
+Game.prototype.clear_board = function(callback){
 
 	var close = function(id, callback){
 		daveShades.put(url.build('lists/'+id+'/closed', {value: true}), function(error, response, body){
@@ -277,7 +311,7 @@ var clear_board = function(callback){
 		});
 	};
 
-	daveShades.get(url.build('boards/'+board+'/lists'), function(error, response, body){
+	daveShades.get(url.build('boards/'+this.board+'/lists'), function(error, response, body){
 		var lists = JSON.parse(body);
 		debug(body);
 		var list_ids = lists.map(function(x){return x.id});
@@ -294,9 +328,12 @@ var clear_board = function(callback){
 	});
 };
 
-deal = function(callback) {
+Game.prototype.deal = function(callback) {
 
 	var cards_on_table = [];
+	var state = this.state;
+	var board = this.board;
+	var deck = this.deck;
 
 	deal_card = function(pile_i){
 		var new_card = deck.draw();
@@ -404,8 +441,12 @@ deal = function(callback) {
 	}
 }
 
-var play = function(){
+Game.prototype.play = function(){
 
+	var state = this.state;
+	var board = this.board;
+	var deck = this.deck;
+	
 	var check_score = function(home_row){
 		var score = 0.0;
 
@@ -707,41 +748,3 @@ var play = function(){
 		monitor_actions();
 	});
 }
-
-daveShades.get(url.build('members/'+vars.robot+'/notifications'), function(error, response, body){
-	console.log(body);
-});
-
-//This method simulates resuming a game, but doesn't actually resume one, since cards in the deck but not on the board are stored in memory.
-//It's the last bit of game state stored by the server.
-//This method is just for testing purposes, so one doesn't need to wait for a game to be dealt to test something.
-exports.resume = function (boardId){
-	if (boardId){
-		board = boardId;
-	}
-	
-	load_state(function(new_state){
-		state = new_state;
-		play();
-	});
-}
-
-exports.game = function(boardId){
-	if (boardId){
-		board = boardId
-	}
-	console.log("starting game", board);
-	
-	clear_board(function(){
-		deal(function(){
-			play();
-		});
-	});
-}
-
-
-
-
-
-
-

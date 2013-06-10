@@ -45,7 +45,7 @@ var redirect_to_oauth = function(server_response){
 
 	daveShades.post(url.build('boards', board_args), function(err, response, body){
 		var data = JSON.parse(body);
-		trellotaire.game(data.id);
+		var new_game = new trellotaire.Game(data.id);
 		
 		var oauthCallback = 'http://localhost:8080/cb/' + data.id
 		var o = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", oauthCallback, "HMAC-SHA1");
