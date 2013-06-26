@@ -7,8 +7,8 @@
 					"requestURL" : "https://trello.com/1/OAuthGetRequestToken",
 				    "accessURL" : "https://trello.com/1/OAuthGetAccessToken",
 					"authorizeURL" : "https://trello.com/1/OAuthAuthorizeToken",
-					"accessToken" : "9708695e12847fc56059410604a3d1603dfe1ddb81bd2b529f33d407461e05ab",
-					"accessTokenSecret" : "6a78e1fdbadc50086046eb378f805d1a"
+					"accessToken" : "5c967c85fe708be4b45e484a7402dd4eca3bd2e1484c9e2e52d75c66c35e1341",
+					"accessTokenSecret" : "10d4ab31d1e7188d89ed02bcddfe35f7"
 				  },
 	"appName" : "Trellotaire"
 }

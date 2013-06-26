@@ -6,6 +6,7 @@ var trellotaire = require('./trellotaire'),
 	url   = require('./trellotaire-url'),
 	fs    = require('fs');
 	
+//TODO: make this a datastore, not just in-mem
 var oauth_secrets = {};
 var server = http.createServer();
 
@@ -15,8 +16,12 @@ server.on('request', function(request, response){
 		redirect_to_oauth(response);
 	
 	else if (/^\/cb\//.test(request.url)){
-		var boardId = request.url.slice(4);
-		redirect_to_board(boardId, response);
+		var boardId = url.parse(request.url, true).pathname.slice(4);
+		var query = url.parse(request.url, true).query;
+		var token = query.oauth_token;
+		var token_secret = oauth_secrets[token];
+		var oauth_verifier = query.oauth_verifier;
+		redirect_to_board(boardId, token, token_secret, oauth_verifier, response);
 	}
 	
 	else
@@ -51,6 +56,7 @@ var redirect_to_oauth = function(server_response){
 		var o = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", oauthCallback, "HMAC-SHA1");
 		o.getOAuthRequestToken(function(error, token, tokenSecret, results){
 			oauth_secrets[token] = tokenSecret;
+
 			server_response.writeHead(302, { 'Location': vars.OAUTH.authorizeURL+"?oauth_token="+token+"&name="+vars.appName+"&scope=read" });
 			server_response.end();
 		});
@@ -58,8 +64,30 @@ var redirect_to_oauth = function(server_response){
 	});
 }
 
-var redirect_to_board = function(boardId, server_response){
+var redirect_to_board = function(boardId, token, token_secret, oauth_verifier, server_response){
 	var boardUrl = 'https://trello.com/board/trellotaire/' + boardId;
+
+	var o = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", "", "HMAC-SHA1");
+  	o.getOAuthAccessToken(token, oauth_secrets[token], oauth_verifier, function(error, accessToken, accessTokenSecret, results){
+		o.get("https://api.trello.com/1/members/me", accessToken, accessTokenSecret, function(error, data, response){
+       		console.log("********************************")
+       		console.log("********************************")
+       		console.log("********************************")
+       		console.log("********************************")
+       		console.log("********************************")
+       		console.log(JSON.parse(data));
+
+       		daveShades.put(url.build('boards/'+boardId+'/members/'+JSON.parse(data).id, {type: 'normal'}), function(err, response, body){
+       			console.log(body);
+       		});
+    	});
+
+  	});
+  
+
+    
+
+
 	server_response.writeHead(302, { 'Location': boardUrl });
 	server_response.end();
 }

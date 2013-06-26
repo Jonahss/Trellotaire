@@ -54,7 +54,7 @@ var login = function(req, res){
     oauth.getOAuthRequestToken(function(error, token, tokenSecret, results){
 		oauth_secrets[token] = tokenSecret;
 		console.log(oauth_secrets);
-		res.writeHead(302, { 'Location': vars.OAUTH.authorizeURL+"?oauth_token="+token+"&name="+vars.appName+"&scope=read,write,account" });
+		res.writeHead(302, { 'Location': vars.OAUTH.authorizeURL+"?oauth_token="+token+"&name="+vars.appName+"&scope=read,write,account"+"&expires=never" });
 		res.end();
 	});
 };
