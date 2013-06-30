@@ -51,7 +51,8 @@ var redirect_to_oauth = function(server_response){
 	daveShades.post(url.build('boards', board_args), function(err, response, body){
 		var data = JSON.parse(body);
 		var new_game = new trellotaire.Game(data.id);
-		
+
+
 		var oauthCallback = 'http://localhost:8080/cb/' + data.id
 		var o = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", oauthCallback, "HMAC-SHA1");
 		o.getOAuthRequestToken(function(error, token, tokenSecret, results){
@@ -69,23 +70,16 @@ var redirect_to_board = function(boardId, token, token_secret, oauth_verifier, s
 
 	var o = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", "", "HMAC-SHA1");
   	o.getOAuthAccessToken(token, oauth_secrets[token], oauth_verifier, function(error, accessToken, accessTokenSecret, results){
+		//get the players trello member id
 		o.get("https://api.trello.com/1/members/me", accessToken, accessTokenSecret, function(error, data, response){
-       		console.log("********************************")
-       		console.log("********************************")
-       		console.log("********************************")
-       		console.log("********************************")
-       		console.log("********************************")
-       		console.log(JSON.parse(data));
-
+       		//add the player to the new board
        		daveShades.put(url.build('boards/'+boardId+'/members/'+JSON.parse(data).id, {type: 'normal'}), function(err, response, body){
-       			console.log(body);
+       			console.log("player added to board");
        		});
     	});
 
   	});
   
-
-    
 
 
 	server_response.writeHead(302, { 'Location': boardUrl });
