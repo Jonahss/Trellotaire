@@ -199,7 +199,7 @@ var pic = function(card){
 
 var _post_card = function(new_card, name, idList, pic, callback){
 	daveShades.post(url.build('cards',{name: name, idList: idList}), function(error, response, body){
-		console.log('add ' + new_card.toString());
+		console.log('add ' + new_card.toString() + ' ' + name);
 		new_card.id = JSON.parse(body).id;
 			
 		daveShades.post(url.build('cards/'+new_card.id+'/attachments', {url: pic, name: "image"}), function(error, response, body){

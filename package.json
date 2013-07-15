@@ -1,0 +1,21 @@
+{
+	"name": "trellotaire",
+	"version": "0.1.0",
+	"author": "Jonah Stiennon <jonahss@gmail.com>",
+	"description": "Solitaire implemented on Trello",
+	"main": "lobby.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Jonahss/codename.git"
+	},
+	"dependencies": {
+		"request" : "2.22.0",
+		"oauth" : "0.9.10",
+		"underscore" : "1.4.4",
+		"prettyjson" : "0.8.1"
+	},
+	"license" : "MIT",
+	"engines" : {
+		"node": ">=0.10.12"
+	}
+}

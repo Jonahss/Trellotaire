@@ -52,7 +52,6 @@ var redirect_to_oauth = function(server_response){
 		var data = JSON.parse(body);
 		var new_game = new trellotaire.Game(data.id);
 
-
 		var oauthCallback = 'http://localhost:8080/cb/' + data.id
 		var o = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", oauthCallback, "HMAC-SHA1");
 		o.getOAuthRequestToken(function(error, token, tokenSecret, results){
