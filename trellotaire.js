@@ -41,7 +41,7 @@ cards.from_s = function(s, id){
 	
 	var vals = s.split(':')
 	if (vals.length != 2){
-		console.log('invalid string used to create a card');
+		console.log('invalid string used to create a card:',s);
 		return null;
 	}
 	var card = new this.Card(vals[0], vals[1]);

@@ -52,7 +52,12 @@ var redirect_to_oauth = function(server_response){
 		var data = JSON.parse(body);
 		var new_game = new trellotaire.Game(data.id);
 
-		var oauthCallback = 'http://localhost:8080/cb/' + data.id
+		var oauthCallback;
+		if (process.env.PORT){
+			oauthCallback = 'http://trellotaire-8411.onmodulus.net/cb' + data.id;
+		} else {
+			oauthCallback = 'http://localhost:8080/cb/' + data.id
+		}
 		var o = new oauth.OAuth(vars.OAUTH.requestURL, vars.OAUTH.accessURL, vars.key, vars.secret, "1.0", oauthCallback, "HMAC-SHA1");
 		o.getOAuthRequestToken(function(error, token, tokenSecret, results){
 			oauth_secrets[token] = tokenSecret;
