@@ -10,8 +10,7 @@ daveShades._performSecureRequest = function(method, url, cb){
     var callback = function(err, data, response){
 		//convenient place to put this default error checking
 		if (err) {
-			console.log(err + "for url: " + url);
-			throw err;
+			console.log("errorfor url:",url,"error:", err.message);
 		}
 		cb(err, response, data);
 	}
