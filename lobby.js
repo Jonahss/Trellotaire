@@ -54,7 +54,7 @@ var redirect_to_oauth = function(server_response){
 
 		var oauthCallback;
 		if (process.env.PORT){
-			oauthCallback = 'http://trellotaire-8411.onmodulus.net/cb' + data.id;
+			oauthCallback = 'http://trellotaire-8411.onmodulus.net/cb/' + data.id;
 		} else {
 			oauthCallback = 'http://localhost:8080/cb/' + data.id
 		}
