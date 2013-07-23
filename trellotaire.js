@@ -198,7 +198,7 @@ var pic = function(card){
 }
 
 var _post_card = function(new_card, name, idList, pic, callback){
-	daveShades.post(url.build('cards',{name: name, idList: idList}), function(error, response, body){
+	daveShades.post(url.build('cards',{name: name, idList: idList, pos: 'bottom'}), function(error, response, body){
 		console.log('add ' + new_card.toString() + ' ' + name);
 		new_card.id = JSON.parse(body).id;
 			
@@ -410,16 +410,8 @@ Game.prototype.deal = function(callback) {
 		daveShades.get(url.build('boards/'+board+'/lists', {cards: 'all'}), function(error, response, body){
 			var lists = JSON.parse(body);
 			lists.forEach(function(list, i){
-				//debug(list);
 				if (i === 0) return; //skip home row
-				var cards = list.cards.sort(function(a,b){
-					if (a.idShort < b.idShort){
-						return 1;
-					}
-					return -1;
-				});
-				debug('flipping card: '+cards[0].idShort+' value: ' + cards_on_table[cards[0].id].value);
-				cards_on_table[cards[0].id].flip();
+				cards_on_table[list.cards[list.cards.length-1].id].flip();
 			});
 		});
 	};
