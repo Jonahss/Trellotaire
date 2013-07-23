@@ -406,17 +406,13 @@ Game.prototype.deal = function(callback) {
 		});
 	};
 	
-	var populate_piles = function(callback){
+	var flip_cards = function(){
 		daveShades.get(url.build('boards/'+board+'/lists', {cards: 'all'}), function(error, response, body){
 			var lists = JSON.parse(body);
 			lists.forEach(function(list, i){
 				if (i === 0) return; //skip home row
-				list.cards.forEach(function(card){
-					state.piles[i-1].push(cards_on_table[card.id]);
-				});
+				cards_on_table[list.cards[list.cards.length-1].id].flip;
 			});
-			console.log('finished populating in-memory piles')
-			callback();
 		});
 	};
 	
@@ -429,15 +425,8 @@ Game.prototype.deal = function(callback) {
 	add_home_row(execute_next);
 	
 	var finish = function(){
-		console.log('finishing:');
-		populate_piles(function(){
-			console.log('flipping cards');
-			state.piles.forEach(function(pile){
-				pile[pile.length-1].flip();
-			});
-		});
-		
-		callback();
+		console.log('finishing: flipping cards');
+		flip_cards();
 	}
 }
 
