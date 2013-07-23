@@ -411,7 +411,13 @@ Game.prototype.deal = function(callback) {
 			var lists = JSON.parse(body);
 			lists.forEach(function(list, i){
 				if (i === 0) return; //skip home row
-				cards_on_table[list.cards[list.cards.length-1].id].flip;
+				var cards = list.cards.sort(function(a,b){
+					if (a.shortid < b.shortid){
+						return -1;
+					}
+					return 1;
+				});
+				cards_on_table[cards[0].id].flip();
 			});
 		});
 	};
