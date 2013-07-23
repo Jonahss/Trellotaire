@@ -410,13 +410,15 @@ Game.prototype.deal = function(callback) {
 		daveShades.get(url.build('boards/'+board+'/lists', {cards: 'all'}), function(error, response, body){
 			var lists = JSON.parse(body);
 			lists.forEach(function(list, i){
+				//debug(list);
 				if (i === 0) return; //skip home row
 				var cards = list.cards.sort(function(a,b){
-					if (a.shortid < b.shortid){
-						return -1;
+					if (a.idShort < b.idShort){
+						return 1;
 					}
-					return 1;
+					return -1;
 				});
+				debug('flipping card: '+cards[0].idShort+' value: ' + cards_on_table[cards[0].id].value);
 				cards_on_table[cards[0].id].flip();
 			});
 		});
