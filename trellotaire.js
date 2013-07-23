@@ -406,13 +406,14 @@ Game.prototype.deal = function(callback) {
 		});
 	};
 	
-	var flip_cards = function(){
+	var flip_cards = function(cb){
 		daveShades.get(url.build('boards/'+board+'/lists', {cards: 'all'}), function(error, response, body){
 			var lists = JSON.parse(body);
 			lists.forEach(function(list, i){
 				if (i === 0) return; //skip home row
 				cards_on_table[list.cards[list.cards.length-1].id].flip();
 			});
+			cb();
 		});
 	};
 	
@@ -426,7 +427,7 @@ Game.prototype.deal = function(callback) {
 	
 	var finish = function(){
 		console.log('finishing: flipping cards');
-		flip_cards();
+		flip_cards(callback);
 	}
 }
 
