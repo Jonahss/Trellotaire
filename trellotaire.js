@@ -482,11 +482,15 @@ Game.prototype.play = function(){
 			new_card = deck.draw();
 		} catch(er) {
 			deck.discarded.emptyInto(deck.deck);
-			new_card = deck.draw();
+			if (deck.deck.length != 0){
+				new_card = deck.draw();
+			}
 		}
 		
-		deck.discard(new_card);
-		to_discard_pile(new_card, callback);
+		if (new_card){
+			deck.discard(new_card);
+			to_discard_pile(new_card, callback);
+		}
 	};
 	
 	var flip_unlocked_card = function(listId){
