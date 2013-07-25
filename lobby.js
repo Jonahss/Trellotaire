@@ -10,6 +10,10 @@ var trellotaire = require('./trellotaire'),
 var oauth_secrets = {};
 var server = http.createServer();
 
+var active_games = 0;
+var wins = 0;
+var timeouts = new Array();
+
 server.on('request', function(request, response){
 
 	if(request.url == '/new')
@@ -51,6 +55,17 @@ var redirect_to_oauth = function(server_response){
 	daveShades.post(url.build('boards', board_args), function(err, response, body){
 		var data = JSON.parse(body);
 		var new_game = new trellotaire.Game(data.id);
+		active_games++;
+		new_game.on('win', function(){
+			wins++;
+			active_games--;
+			delete new_game;
+		});
+		new_game.on('timeout', function(d){
+			timeouts.push(d);
+			active_games--;
+			delete new_game;
+		})
 
 		var oauthCallback;
 		if (process.env.PORT){
@@ -89,3 +104,10 @@ var redirect_to_board = function(boardId, token, token_secret, oauth_verifier, s
 	server_response.writeHead(302, { 'Location': boardUrl });
 	server_response.end();
 }
+
+var log_stats = function(){
+	console.log('active games: ', active_games);
+	console.log('wins: ', wins);
+	console.log('timeouts: ', timeouts.length, '\n', timeouts);
+}
+setInterval(log_stats, 30000)

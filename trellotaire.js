@@ -1,9 +1,12 @@
-var request  	 = require('request'),
-	url 		 = require('./trellotaire-url'),
-	daveShades   = require('./daveShades'),
-	pretty		 = require('prettyjson'),
-	vars		 = require('./vars.json'),
-	cards		 = require('./node-cards');
+var  request  	 = require('request')
+	,url 		 = require('./trellotaire-url')
+	,daveShades  = require('./daveShades')
+	,pretty		 = require('prettyjson')
+	,vars		 = require('./vars.json')
+	,cards		 = require('./node-cards')
+	,events		 = require('events')
+	,util 		 = require('util')
+	;
 
 cards.useArc4 = true;
 
@@ -281,6 +284,7 @@ exports.resume = function (boardId){
 }
 
 var Game = exports.Game = function(boardId){
+	events.EventEmitter.call(this);
 	
 	var deck = new cards.Deck('poker');
 	deck.suits = ['spade', 'heart', 'club', 'diamond'];
@@ -301,6 +305,7 @@ var Game = exports.Game = function(boardId){
 		});
 	});
 }
+util.inherits(Game, events.EventEmitter);
 
 Game.prototype.clear_board = function(callback){
 
@@ -433,6 +438,7 @@ Game.prototype.deal = function(callback) {
 
 Game.prototype.play = function(){
 
+	var self = this;
 	var state = this.state;
 	var board = this.board;
 	var deck = this.deck;
@@ -604,6 +610,7 @@ Game.prototype.play = function(){
 				console.log(score + ' ' + king.getNumericalValue() * 4)
 				console.log(score == king.getNumericalValue() * 4)
 				if (score == king.getNumericalValue() * 4){
+					self.emit('win', 'yay');
 					march_of_the_kings();
 				}
 			}
@@ -625,11 +632,20 @@ Game.prototype.play = function(){
 		});
 	}
 
+	var last_active = new Date()
 	var monitor_actions = function(){
+		if (new Date() - last_active > 3600000){
+			daveShades.get(url.build('lists/'+state.home_row_id+'/cards'), function(error, response, body){
+				var home_row = JSON.parse(body);
+				self.emit('timeout', check_score(home_row));
+			});
+			return;
+		}
 		daveShades.get(url.build('boards/'+board+'/actions', {filter: 'updateCard', fields: 'data,type', since: 'lastView'}), function(error, response, body){
 			var actions = JSON.parse(body);
 			if (actions.length == 0) {setTimeout(monitor_actions, 500)}
 			else {
+				last_active = new Date();
 				actions = actions.filter(is_player_action)
 				actions = group(actions, 'data.card.id');
 				for(var ac in actions){
