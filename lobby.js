@@ -54,7 +54,11 @@ var redirect_to_oauth = function(server_response){
 
 	daveShades.post(url.build('boards', board_args), function(err, response, body){
 		var data = JSON.parse(body);
-		var new_game = new trellotaire.Game(data.id);
+		try {
+			var new_game = new trellotaire.Game(data.id);
+		} catch (e) {
+			console.log(e); //this should catch individual games breaking, so other games won't be reset.
+		}
 		active_games++;
 		new_game.on('win', function(){
 			wins++;
